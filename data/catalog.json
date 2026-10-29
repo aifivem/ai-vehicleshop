@@ -1,0 +1,206 @@
+{
+  "blista": {
+    "label": "",
+    "model": "blista",
+    "price": 14000,
+    "category": "compacts"
+  },
+  "issi2": {
+    "label": "",
+    "model": "issi2",
+    "price": 18000,
+    "category": "compacts"
+  },
+  "panto": {
+    "label": "",
+    "model": "panto",
+    "price": 12000,
+    "category": "compacts"
+  },
+  "brioso": {
+    "label": "",
+    "model": "brioso",
+    "price": 21000,
+    "category": "compacts"
+  },
+  "asea": {
+    "label": "",
+    "model": "asea",
+    "price": 11000,
+    "category": "sedans"
+  },
+  "premier": {
+    "label": "",
+    "model": "premier",
+    "price": 15000,
+    "category": "sedans"
+  },
+  "tailgater": {
+    "label": "",
+    "model": "tailgater",
+    "price": 32000,
+    "category": "sedans"
+  },
+  "schafter2": {
+    "label": "",
+    "model": "schafter2",
+    "price": 48000,
+    "category": "sedans"
+  },
+  "stanier": {
+    "label": "",
+    "model": "stanier",
+    "price": 14000,
+    "category": "sedans"
+  },
+  "baller": {
+    "label": "",
+    "model": "baller",
+    "price": 42000,
+    "category": "suvs"
+  },
+  "granger": {
+    "label": "",
+    "model": "granger",
+    "price": 36000,
+    "category": "suvs"
+  },
+  "huntley": {
+    "label": "",
+    "model": "huntley",
+    "price": 54000,
+    "category": "suvs"
+  },
+  "cavalcade": {
+    "label": "",
+    "model": "cavalcade",
+    "price": 30000,
+    "category": "suvs"
+  },
+  "sultan": {
+    "label": "",
+    "model": "sultan",
+    "price": 45000,
+    "category": "sports"
+  },
+  "elegy2": {
+    "label": "",
+    "model": "elegy2",
+    "price": 95000,
+    "category": "sports"
+  },
+  "jester": {
+    "label": "",
+    "model": "jester",
+    "price": 120000,
+    "category": "sports"
+  },
+  "comet2": {
+    "label": "",
+    "model": "comet2",
+    "price": 110000,
+    "category": "sports"
+  },
+  "buffalo": {
+    "label": "",
+    "model": "buffalo",
+    "price": 38000,
+    "category": "sports"
+  },
+  "adder": {
+    "label": "",
+    "model": "adder",
+    "price": 900000,
+    "category": "super"
+  },
+  "zentorno": {
+    "label": "",
+    "model": "zentorno",
+    "price": 725000,
+    "category": "super"
+  },
+  "t20": {
+    "label": "",
+    "model": "t20",
+    "price": 1100000,
+    "category": "super"
+  },
+  "dominator": {
+    "label": "",
+    "model": "dominator",
+    "price": 70000,
+    "category": "muscle"
+  },
+  "gauntlet": {
+    "label": "",
+    "model": "gauntlet",
+    "price": 62000,
+    "category": "muscle"
+  },
+  "dukes": {
+    "label": "",
+    "model": "dukes",
+    "price": 48000,
+    "category": "muscle"
+  },
+  "bifta": {
+    "label": "",
+    "model": "bifta",
+    "price": 28000,
+    "category": "offroad"
+  },
+  "rebel2": {
+    "label": "",
+    "model": "rebel2",
+    "price": 22000,
+    "category": "offroad"
+  },
+  "sandking": {
+    "label": "",
+    "model": "sandking",
+    "price": 44000,
+    "category": "offroad"
+  },
+  "speedo": {
+    "label": "",
+    "model": "speedo",
+    "price": 26000,
+    "category": "vans"
+  },
+  "burrito3": {
+    "label": "",
+    "model": "burrito3",
+    "price": 24000,
+    "category": "vans"
+  },
+  "youga": {
+    "label": "",
+    "model": "youga",
+    "price": 20000,
+    "category": "vans"
+  },
+  "faggio": {
+    "label": "",
+    "model": "faggio",
+    "price": 3000,
+    "category": "motorcycles"
+  },
+  "bati": {
+    "label": "",
+    "model": "bati",
+    "price": 24000,
+    "category": "motorcycles"
+  },
+  "sanchez": {
+    "label": "",
+    "model": "sanchez",
+    "price": 8000,
+    "category": "motorcycles"
+  },
+  "akuma": {
+    "label": "",
+    "model": "akuma",
+    "price": 19000,
+    "category": "motorcycles"
+  }
+}

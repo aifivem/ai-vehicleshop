@@ -1,0 +1,73 @@
+{
+  "pdm": {
+    "label": "Premium Deluxe Motorsport",
+    "coords": {
+      "x": -56.7,
+      "y": -1098.7,
+      "z": 26.42
+    },
+    "radius": 6,
+    "preview": {
+      "x": -44.7,
+      "y": -1097.4,
+      "z": 26.42,
+      "heading": 115
+    },
+    "camera": {
+      "x": -49.1,
+      "y": -1101.6,
+      "z": 28.0,
+      "heading": 315
+    },
+    "delivery": {
+      "x": -28.4,
+      "y": -1085.6,
+      "z": 26.57,
+      "heading": 70
+    },
+    "categories": [
+      "compacts",
+      "sedans",
+      "suvs",
+      "sports",
+      "super",
+      "muscle",
+      "offroad",
+      "vans"
+    ],
+    "jobs": [],
+    "blip": true
+  },
+  "bikes": {
+    "label": "Sanders Motorcycles",
+    "coords": {
+      "x": 268.3,
+      "y": -1155.2,
+      "z": 29.29
+    },
+    "radius": 5,
+    "preview": {
+      "x": 264.6,
+      "y": -1159.9,
+      "z": 29.27,
+      "heading": 0
+    },
+    "camera": {
+      "x": 264.4,
+      "y": -1155.1,
+      "z": 30.4,
+      "heading": 180
+    },
+    "delivery": {
+      "x": 256.7,
+      "y": -1150.9,
+      "z": 29.29,
+      "heading": 90
+    },
+    "categories": [
+      "motorcycles"
+    ],
+    "jobs": [],
+    "blip": true
+  }
+}
