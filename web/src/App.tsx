@@ -1,82 +1,82 @@
-import { useEffect, useMemo, useState } from "react"
-import { fetchNui, useNuiEvent } from "fivem-nui-react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { useEffect, useMemo, useState } from "react";
+import { fetchNui, useNuiEvent } from "fivem-nui-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowPointer,
   faCarSide,
   faDoorOpen,
-} from "@fortawesome/free-solid-svg-icons"
-import type { NuiMessage } from "../../resource/common/shop"
-import { Tabs, TabsList, TabsTrigger } from "./components/ui/tabs"
-import { VirtualList } from "./components/VirtualList"
-import { MOCK_OPEN } from "./dev/mock"
-import { setTexts, useLang } from "./lib/lang"
-import { categoryIcon } from "./features/categoryIcon"
-import { Detail } from "./features/Detail"
-import { VehicleCard } from "./features/VehicleCard"
+} from "@fortawesome/free-solid-svg-icons";
+import type { NuiMessage } from "../../resource/common/shop";
+import { Tabs, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { VirtualList } from "./components/VirtualList";
+import { MOCK_OPEN } from "./dev/mock";
+import { setTexts, useLang } from "./lib/lang";
+import { categoryIcon } from "./features/categoryIcon";
+import { Detail } from "./features/Detail";
+import { VehicleCard } from "./features/VehicleCard";
 
-type OpenData = Extract<NuiMessage, { action: "open" }>["data"]
-const OPEN_MOCK = { mockData: MOCK_OPEN, mockDelay: 100 }
-const OK = { mockData: { ok: true } }
-const close = () => void fetchNui("close", undefined, OK)
+type OpenData = Extract<NuiMessage, { action: "open" }>["data"];
+const OPEN_MOCK = { mockData: MOCK_OPEN, mockDelay: 100 };
+const OK = { mockData: { ok: true } };
+const close = () => void fetchNui("close", undefined, OK);
 
 /** The showroom over the preview camera (tgiann-vehicleshop look): title and ESC close; detail left; category pills and the vehicle strip below. */
 export function App() {
-  const t = useLang()
-  const [data, setData] = useState<OpenData | null>(null)
-  const [category, setCategory] = useState("")
-  const [model, setModel] = useState<string | null>(null)
-  const [color, setColor] = useState(0)
-  const [busy, setBusy] = useState(false)
+  const t = useLang();
+  const [data, setData] = useState<OpenData | null>(null);
+  const [category, setCategory] = useState("");
+  const [model, setModel] = useState<string | null>(null);
+  const [color, setColor] = useState(0);
+  const [busy, setBusy] = useState(false);
 
   useNuiEvent<OpenData>(
     "open",
     (d) => {
-      setTexts(d.texts)
-      setData(d)
-      setCategory(d.shop.vehicles[0]?.category ?? "")
-      setModel(null)
+      setTexts(d.texts);
+      setData(d);
+      setCategory(d.shop.vehicles[0]?.category ?? "");
+      setModel(null);
     },
-    OPEN_MOCK
-  )
-  useNuiEvent("close", () => setData(null))
+    OPEN_MOCK,
+  );
+  useNuiEvent("close", () => setData(null));
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && data && close()
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [data])
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && data && close();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [data]);
 
   /** Categories in catalog order with how many vehicles each has. */
   const categories = useMemo(() => {
-    const counts = new Map<string, number>()
+    const counts = new Map<string, number>();
     for (const v of data?.shop.vehicles ?? [])
-      counts.set(v.category, (counts.get(v.category) ?? 0) + 1)
-    return [...counts]
-  }, [data])
+      counts.set(v.category, (counts.get(v.category) ?? 0) + 1);
+    return [...counts];
+  }, [data]);
   const list = useMemo(
     () => data?.shop.vehicles.filter((v) => v.category === category) ?? [],
-    [data, category]
-  )
-  if (!data) return null
-  const selected = data.shop.vehicles.find((v) => v.model === model)
+    [data, category],
+  );
+  if (!data) return null;
+  const selected = data.shop.vehicles.find((v) => v.model === model);
 
   const pick = (m: string) => {
-    setModel(m)
-    void fetchNui("preview", { model: m, color }, OK)
-  }
+    setModel(m);
+    void fetchNui("preview", { model: m, color }, OK);
+  };
   const paint = (c: number) => {
-    setColor(c)
-    void fetchNui("color", { color: c }, OK)
-  }
+    setColor(c);
+    void fetchNui("color", { color: c }, OK);
+  };
   const buy = async () => {
-    if (!selected) return
-    setBusy(true)
+    if (!selected) return;
+    setBusy(true);
     await fetchNui("buy", { model: selected.model, color }, OK).catch(
-      () => null
-    )
-    setBusy(false)
-  }
+      () => null,
+    );
+    setBusy(false);
+  };
 
   return (
     <div className="fixed inset-0 animate-fade">
@@ -181,5 +181,5 @@ export function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }

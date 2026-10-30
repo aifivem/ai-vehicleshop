@@ -1,4 +1,4 @@
-import type { PanelSchema } from "@aicore-fivem/shared"
+import type { PanelSchema } from "@aicore-fivem/shared";
 
 /** ai-vehicleshop's panel: the vehicle catalog and the shops that sell its categories. */
 export const shopSchema: PanelSchema = {
@@ -200,4 +200,4 @@ export const shopSchema: PanelSchema = {
       ],
     },
   ],
-}
+};

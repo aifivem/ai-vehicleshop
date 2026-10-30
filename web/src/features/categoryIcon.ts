@@ -10,7 +10,7 @@ import {
   faTruckPickup,
   faVanShuttle,
   type IconDefinition,
-} from "@fortawesome/free-solid-svg-icons"
+} from "@fortawesome/free-solid-svg-icons";
 
 const ICONS: Record<string, IconDefinition> = {
   compacts: faCarSide,
@@ -22,8 +22,8 @@ const ICONS: Record<string, IconDefinition> = {
   offroad: faMountain,
   vans: faVanShuttle,
   motorcycles: faMotorcycle,
-}
+};
 
 /** Glyph of a catalog category (panel categories outside the defaults get the grid glyph). */
 export const categoryIcon = (category: string): IconDefinition =>
-  ICONS[category] ?? faTableCellsLarge
+  ICONS[category] ?? faTableCellsLarge;

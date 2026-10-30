@@ -1,17 +1,17 @@
-import type { ReactNode } from "react"
-import { Tooltip as TooltipPrimitive } from "radix-ui"
+import type { ReactNode } from "react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 
 /** Radix tooltip in the TGIANN floating surface; the app root wraps everything in `TooltipProvider`. */
-export const TooltipProvider = TooltipPrimitive.Provider
+export const TooltipProvider = TooltipPrimitive.Provider;
 
 export function Hint({
   label,
   side = "bottom",
   children,
 }: {
-  label: string
-  side?: "top" | "bottom" | "left" | "right"
-  children: ReactNode
+  label: string;
+  side?: "top" | "bottom" | "left" | "right";
+  children: ReactNode;
 }) {
   return (
     <TooltipPrimitive.Root>
@@ -26,5 +26,5 @@ export function Hint({
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faCartShopping, faPalette } from "@fortawesome/free-solid-svg-icons"
-import type { ShopView } from "../../../resource/common/shop"
-import { Button } from "../components/ui/button"
-import { useLang } from "../lib/lang"
-import { cn } from "../lib/utils"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCartShopping, faPalette } from "@fortawesome/free-solid-svg-icons";
+import type { ShopView } from "../../../resource/common/shop";
+import { Button } from "../components/ui/button";
+import { useLang } from "../lib/lang";
+import { cn } from "../lib/utils";
 
 /** Swatch colours for the GTA colour indexes in `COLORS` (same order). */
 const SWATCH = [
@@ -15,15 +15,15 @@ const SWATCH = [
   "#15803d",
   "#facc15",
   "#f97316",
-]
+];
 
 interface Props {
-  vehicle: ShopView["vehicles"][number]
-  colors: readonly number[]
-  color: number
-  busy: boolean
-  onColor: (color: number) => void
-  onBuy: () => void
+  vehicle: ShopView["vehicles"][number];
+  colors: readonly number[];
+  color: number;
+  busy: boolean;
+  onColor: (color: number) => void;
+  onBuy: () => void;
 }
 
 /** Left column of the showroom (tgiann-vehicleshop detail): name, price and class, paint swatches, the one Buy button. */
@@ -35,7 +35,7 @@ export function Detail({
   onColor,
   onBuy,
 }: Props) {
-  const t = useLang()
+  const t = useLang();
   return (
     <div className="flex w-[38vh] animate-rise flex-col gap-[2vh]">
       <div className="flex flex-col gap-[0.8vh]">
@@ -74,7 +74,7 @@ export function Detail({
               onClick={() => onColor(c)}
               className={cn(
                 "h-[3.2vh] rounded-[0.6vh] border-[0.2vh] border-transparent [box-shadow:inset_0_0_0_1px_rgba(255,255,255,0.12)] transition-[border-color,transform] duration-150 hover:border-tgi-green active:[transform:scale(0.94)]",
-                c === color && "border-dashed border-tgi-green"
+                c === color && "border-dashed border-tgi-green",
               )}
               style={{ background: SWATCH[i] }}
             />
@@ -88,5 +88,5 @@ export function Detail({
         {t("UI_BUY")}
       </Button>
     </div>
-  )
+  );
 }
