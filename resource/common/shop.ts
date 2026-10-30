@@ -2,12 +2,13 @@ import {
   bool,
   int,
   num,
+  type PlacePed,
+  readBlipStyle,
+  readPlacePed,
   record,
   str,
   vec4,
   type Vec4,
-  readPlacePed,
-  type PlacePed,
 } from "@aicore-fivem/lib/shared";
 
 /** ai-vehicleshop's contracts and panel content. No natives. */
@@ -99,11 +100,7 @@ export interface Settings {
 
 function readBlip(raw: unknown, fallback: BlipStyle): BlipStyle {
   const v = record(raw);
-  return {
-    sprite: int(v.sprite, fallback.sprite, 0, 1000),
-    color: int(v.color, fallback.color, 0, 100),
-    scale: num(v.scale, fallback.scale, 0.3, 2),
-  };
+  return readBlipStyle(v, { sprite: fallback.sprite, color: fallback.color, scale: fallback.scale });
 }
 
 export function readSettings(raw: unknown): Settings {
