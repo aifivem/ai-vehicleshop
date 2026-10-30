@@ -32,7 +32,7 @@ onClientCallback(
     if (!core.RemoveMoney(source, "bank", entry.price, `vehicle:${model}`) && !core.RemoveMoney(source, "cash", entry.price, `vehicle:${model}`)) return fail("SHOP_ERR_MONEY");
     const created = vehiclesApi.CreateVehicle({ type: "character", id: String(character.id) }, model, null);
     if (!created) return fail("SHOP_ERR_GONE");
-    const netId = await new Promise<number | null>((resolve) => vehiclesApi.SpawnVehicle(created.id, shop.delivery, source, resolve));
+    const netId = await new Promise<number | null>((resolve) => vehiclesApi.SpawnVehicle(created.id, shop.delivery, source, resolve, "purchase"));
     if (netId !== null) {
       const entity = NetworkGetEntityFromNetworkId(netId);
       // The picked colour; the owner's client saves it with the other props on the first parking.
