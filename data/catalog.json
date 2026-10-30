@@ -1,4 +1,5 @@
 {
+  "$schema": "./schemas/catalog.schema.json",
   "blista": {
     "label": "",
     "model": "blista",

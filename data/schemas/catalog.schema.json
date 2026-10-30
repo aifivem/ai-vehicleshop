@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-vehicleshop/data/catalog.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    }
+  },
+  "patternProperties": {
+    "^[a-z0-9_]{2,32}$": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "Name: Empty uses the game's own name.",
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 48
+        },
+        "model": {
+          "description": "Model: The GTA spawn name (sultan, adder, bati).",
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-z0-9_]{2,32}$"
+        },
+        "price": {
+          "description": "Price",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "category": {
+          "description": "Category: Shops sell the categories they list (sedans, sports, motorcycles...).",
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-z0-9_]{2,32}$"
+        }
+      },
+      "required": [
+        "label",
+        "model",
+        "price",
+        "category"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,160 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ai-vehicleshop/data/shops.json",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "This file's JSON Schema (for editors)."
+    }
+  },
+  "patternProperties": {
+    "^[a-z0-9_]{2,32}$": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "Shop name",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "coords": {
+          "description": "Counter: Stand where players open the shop and use your position.",
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "radius": {
+          "description": "Reach",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "preview": {
+          "description": "Preview spot: Stand where the shown vehicle should be, facing its front direction.",
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z",
+            "heading"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            },
+            "heading": {
+              "type": "number"
+            }
+          }
+        },
+        "camera": {
+          "description": "Camera: Look at the preview spot with the game camera and use the camera position.",
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z",
+            "heading"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            },
+            "heading": {
+              "type": "number"
+            }
+          }
+        },
+        "delivery": {
+          "description": "Delivery spot: Where bought vehicles appear, facing your direction.",
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z",
+            "heading"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            },
+            "heading": {
+              "type": "number"
+            }
+          }
+        },
+        "categories": {
+          "description": "Categories: Catalog categories this shop sells.",
+          "type": "array",
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[a-z0-9_]{2,32}$"
+          }
+        },
+        "jobs": {
+          "description": "Jobs: Empty: everyone may buy. Otherwise only these jobs (a police fleet dealer).",
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[a-z0-9_]{2,32}$"
+          }
+        },
+        "blip": {
+          "description": "Map blip",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "coords",
+        "radius",
+        "preview",
+        "camera",
+        "delivery",
+        "categories",
+        "jobs",
+        "blip"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

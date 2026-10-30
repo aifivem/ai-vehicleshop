@@ -1,4 +1,5 @@
 {
+  "$schema": "./schemas/shops.schema.json",
   "pdm": {
     "label": "Premium Deluxe Motorsport",
     "coords": {
@@ -16,7 +17,7 @@
     "camera": {
       "x": -49.1,
       "y": -1101.6,
-      "z": 28.0,
+      "z": 28,
       "heading": 315
     },
     "delivery": {
