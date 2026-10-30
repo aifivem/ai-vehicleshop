@@ -6,7 +6,6 @@ import {
   onClientCallback,
   online,
   resourceExport,
-  vehicleFromNet,
 } from "@aicore-fivem/lib/server";
 import { fail, readText } from "@aicore-fivem/lib/shared";
 import { COLORS, EVENTS, readEntry, readSettings, readShop } from "common/shop";
@@ -69,6 +68,7 @@ onClientCallback(
       core.AddMoney(source, account, entry.price, `${reason}:refund`);
       return fail("SHOP_ERR_FAILED");
     }
+    // The picked colour as the spawn setup: ai-vehicles keeps it until the first parking stores full props.
     const netId = await new Promise<number | null>((resolve) =>
       vehiclesApi.SpawnVehicle(
         created.id,
@@ -76,13 +76,9 @@ onClientCallback(
         source,
         resolve,
         "purchase",
+        { colors: [color, color] },
       ),
     );
-    if (netId !== null) {
-      const entity = vehicleFromNet(netId);
-      // The picked colour; the owner's client saves it with the other props on the first parking.
-      if (entity) SetVehicleColours(entity, color, color);
-    }
     aiLog(
       "purchases",
       `bought ${model} (${created.plate}) for $${entry.price} at ${shop.id}`,
