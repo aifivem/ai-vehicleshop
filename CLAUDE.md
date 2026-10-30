@@ -1,6 +1,6 @@
 # ai-vehicleshop
 
-Vehicle shops: a catalog (model, price, category) and shops that sell some categories, with a preview vehicle under a camera, colour swatches and delivery outside. Depends on ai-core (money, prompts, admin panel) and ai-vehicles (creating and spawning the bought vehicle). Research and decisions: `docs/research/vehicles.md`.
+Vehicle shops: a catalog (model, price, category) and shops that sell some categories, with a preview vehicle under a camera, colour swatches and delivery outside. Depends on ai-core (money, prompts, admin panel) and ai-vehicles (creating and spawning the bought vehicle).
 
 ## Decisions
 
