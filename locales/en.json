@@ -12,6 +12,8 @@
   "UI_PRICE": "${0}",
   "UI_BUY": "Buy",
   "UI_COLOR": "Colour",
+  "UI_PICK_TITLE": "Pick a vehicle",
+  "UI_PICK_HINT": "Choose one below to look it over and paint it.",
   "CATEGORY_COMPACTS": "Compacts",
   "CATEGORY_SEDANS": "Sedans",
   "CATEGORY_SUVS": "SUVs",
