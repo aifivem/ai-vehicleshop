@@ -7,20 +7,23 @@ const vhPx = (): number => window.innerHeight / 100;
 interface VirtualListProps<T> {
   items: T[];
   renderItem: (item: T, index: number) => ReactNode;
-  /** Estimated row height in vh; rows measure themselves after mount. */
+  /** Estimated row height (column width when horizontal) in vh; rows measure themselves after mount. */
   estimateSize: number;
   /** Row gap in vh. */
   gap?: number;
   getItemKey: (item: T, index: number) => string | number;
+  /** A row that scrolls sideways; the mouse wheel scrolls it too. */
+  horizontal?: boolean;
   empty?: ReactNode;
   className?: string;
 }
 
 /** Every scrolling list of data (tgiann-ui rule): only visible rows render, positions on whole pixels. */
-export function VirtualList<T>({ items, renderItem, estimateSize, gap = 0, getItemKey, empty, className }: VirtualListProps<T>) {
+export function VirtualList<T>({ items, renderItem, estimateSize, gap = 0, getItemKey, horizontal = false, empty, className }: VirtualListProps<T>) {
   "use no memo";
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
+    horizontal,
     count: items.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => estimateSize * vhPx(),
@@ -33,22 +36,34 @@ export function VirtualList<T>({ items, renderItem, estimateSize, gap = 0, getIt
       return item === undefined ? index : getItemKey(item, index);
     },
   });
+  const total = virtualizer.getTotalSize();
 
   return (
-    <div ref={scrollRef} className={cn("overflow-y-auto", className)}>
+    <div
+      ref={scrollRef}
+      className={cn(horizontal ? "overflow-x-auto overflow-y-hidden" : "overflow-y-auto", className)}
+      onWheel={
+        horizontal
+          ? (e) => {
+              if (scrollRef.current && e.deltaY !== 0) scrollRef.current.scrollLeft += e.deltaY;
+            }
+          : undefined
+      }
+    >
       {items.length === 0 ? (
         empty
       ) : (
-        <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+        <div className={horizontal ? "relative h-full" : "relative w-full"} style={horizontal ? { width: total } : { height: total }}>
           {virtualizer.getVirtualItems().map((row) => {
             const item = items[row.index];
+            const at = Math.round(row.start);
             return item === undefined ? null : (
               <div
                 key={row.key}
                 data-index={row.index}
                 ref={virtualizer.measureElement}
-                className="absolute left-0 top-0 w-full"
-                style={{ transform: `translateY(${Math.round(row.start)}px)` }}
+                className={horizontal ? "absolute left-0 top-0 h-full" : "absolute left-0 top-0 w-full"}
+                style={{ transform: horizontal ? `translateX(${at}px)` : `translateY(${at}px)` }}
               >
                 {renderItem(item, row.index)}
               </div>

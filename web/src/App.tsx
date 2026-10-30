@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { fetchNui, useNuiEvent } from "fivem-nui-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCarSide, faDoorOpen, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { NuiMessage } from "../../resource/common/shop";
-import { Button } from "./components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Hint, TooltipProvider } from "./components/ui/tooltip";
 import { VirtualList } from "./components/VirtualList";
 import { MOCK_OPEN } from "./dev/mock";
 import { setTexts, useLang } from "./lib/lang";
-import { cn } from "./lib/utils";
+import { categoryIcon } from "./features/categoryIcon";
+import { Detail } from "./features/Detail";
+import { VehicleCard } from "./features/VehicleCard";
 
 type OpenData = Extract<NuiMessage, { action: "open" }>["data"];
 const OPEN_MOCK = { mockData: MOCK_OPEN, mockDelay: 100 };
 const OK = { mockData: { ok: true } };
-/** Swatch colours for the GTA colour indexes in `COLORS` (same order). */
-const SWATCH = ["#0d0d0d", "#f2f2f2", "#9aa0a6", "#c1121f", "#1d4ed8", "#15803d", "#facc15", "#f97316"];
+const close = () => void fetchNui("close", undefined, OK);
 
-/** The showroom: categories, the vehicle list, colour swatches and the buy button; the game shows the preview. */
+/** The showroom over the preview camera (tgiann-vehicleshop look): title, category bar, ESC close; detail left; vehicle strip below. */
 export function App() {
   const t = useLang();
   const [data, setData] = useState<OpenData | null>(null);
@@ -38,7 +39,7 @@ export function App() {
   useNuiEvent("close", () => setData(null));
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && data && void fetchNui("close", undefined, OK);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && data && close();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [data]);
@@ -52,6 +53,10 @@ export function App() {
     setModel(m);
     void fetchNui("preview", { model: m, color }, OK);
   };
+  const paint = (c: number) => {
+    setColor(c);
+    void fetchNui("color", { color: c }, OK);
+  };
   const buy = async () => {
     if (!selected) return;
     setBusy(true);
@@ -60,76 +65,64 @@ export function App() {
   };
 
   return (
-    <div className="fixed inset-y-0 left-0 flex w-[52vh] animate-fade flex-col gap-[1.6vh] p-[3vh]">
-      <section className="flex min-h-0 flex-1 flex-col gap-[1.4vh] rounded-[1.2vh] border border-line bg-[rgba(var(--panel-rgb),0.94)] p-[2vh]">
-        <header className="flex items-start justify-between">
-          <div className="flex flex-col gap-[0.4vh]">
-            <span className="text-[1.2vh] uppercase tracking-[0.24em] text-text-3">{t("UI_SHOWROOM")}</span>
-            <h1 className="text-[2.2vh] font-semibold leading-none">{data.shop.label}</h1>
-          </div>
-          <Button variant="icon" aria-label={t("UI_CLOSE")} onClick={() => void fetchNui("close", undefined, OK)}>
-            <FontAwesomeIcon icon={faXmark} />
-          </Button>
-        </header>
-        <Tabs value={category} onValueChange={setCategory}>
-          <TabsList active={categories.indexOf(category)} count={categories.length}>
-            {categories.map((c) => (
-              <TabsTrigger key={c} value={c}>
-                {t(`CATEGORY_${c.toUpperCase()}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <VirtualList
-          className="min-h-0 flex-1"
-          items={list}
-          estimateSize={5.6}
-          gap={0.6}
-          getItemKey={(v) => v.model}
-          empty={<p className="py-[4vh] text-center text-[1.4vh] text-text-3">{t("UI_EMPTY")}</p>}
-          renderItem={(v) => (
-            <button
-              type="button"
-              onClick={() => pick(v.model)}
-              className={cn(
-                "flex h-[5.6vh] w-full items-center justify-between rounded-[0.8vh] border px-[1.4vh] text-left transition-colors duration-150",
-                v.model === model ? "border-accent bg-[rgba(var(--accent-rgb),0.08)]" : "border-line bg-bg hover:bg-raised",
+    <TooltipProvider delayDuration={300} skipDelayDuration={0}>
+      <div className="fixed inset-0 animate-fade">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(0,0,0,0.15)_30%,rgba(0,0,0,0.85))]" />
+        <div className="relative flex h-full flex-col justify-between p-[2vh]">
+          <div className="grid grid-cols-[30%_minmax(0,1fr)_30%] items-start">
+            <div className="flex min-w-0 flex-col gap-[0.6vh]">
+              <h1 className="font-display text-[4.4vh] leading-none font-extrabold tracking-[-0.01em] uppercase">{t("UI_SHOWROOM")}</h1>
+              <p className="truncate text-[1.8vh] text-text-2">{data.shop.label}</p>
+            </div>
+            <Tabs value={category} onValueChange={setCategory} className="flex justify-center">
+              {categories.length > 1 && (
+                <TabsList>
+                  {categories.map((c, i) => (
+                    <Fragment key={c}>
+                      {i > 0 && <FontAwesomeIcon icon={faXmark} aria-hidden className="text-[1.2vh] text-white/30" />}
+                      <Hint label={t(`CATEGORY_${c.toUpperCase()}`)}>
+                        <TabsTrigger value={c} aria-label={t(`CATEGORY_${c.toUpperCase()}`)}>
+                          <FontAwesomeIcon icon={categoryIcon(c)} />
+                        </TabsTrigger>
+                      </Hint>
+                    </Fragment>
+                  ))}
+                </TabsList>
               )}
-            >
-              <span className="truncate text-[1.45vh] font-medium text-text">{v.label}</span>
-              <span className="text-[1.35vh] tabular-nums text-text-2">{t("UI_PRICE", v.price.toLocaleString("en-US"))}</span>
+            </Tabs>
+            <button type="button" onClick={close} className="group flex items-center gap-[1vh] justify-self-end">
+              <span className="text-[1.4vh] font-extrabold text-text-2 transition-colors duration-150 group-hover:text-white">{t("UI_ESC_CLOSE")}</span>
+              <span className="flex size-[4.4vh] items-center justify-center rounded-full bg-black/60 text-[1.8vh] text-text-3 transition-colors duration-150 group-hover:bg-[#101010B3] group-hover:text-white">
+                <FontAwesomeIcon icon={faDoorOpen} />
+              </span>
             </button>
-          )}
-        />
-      </section>
-      {selected && (
-        <section className="flex animate-rise flex-col gap-[1.4vh] rounded-[1.2vh] border border-line bg-[rgba(var(--panel-rgb),0.94)] p-[2vh]">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[1.8vh] font-semibold">{selected.label}</span>
-            <span className="text-[1.8vh] font-semibold tabular-nums text-accent">{t("UI_PRICE", selected.price.toLocaleString("en-US"))}</span>
           </div>
-          <div className="flex gap-[0.8vh]" role="radiogroup" aria-label={t("UI_COLOR")}>
-            {data.colors.map((c, i) => (
-              <button
-                key={c}
-                type="button"
-                role="radio"
-                aria-checked={c === color}
-                aria-label={t("UI_COLOR")}
-                onClick={() => {
-                  setColor(c);
-                  void fetchNui("color", { color: c }, OK);
-                }}
-                className={cn("size-[3.2vh] rounded-full border-2 transition-transform duration-150 active:[transform:scale(0.92)]", c === color ? "border-accent" : "border-line")}
-                style={{ background: SWATCH[i] }}
-              />
-            ))}
+          <div className="flex min-h-0">
+            {selected && (
+              <Detail key={selected.model} vehicle={selected} colors={data.colors} color={color} busy={busy} onColor={paint} onBuy={() => void buy()} />
+            )}
           </div>
-          <Button variant="filled" busy={busy} onClick={() => void buy()}>
-            {t("UI_BUY")}
-          </Button>
-        </section>
-      )}
-    </div>
+          <VirtualList
+            horizontal
+            className="h-[15vh] shrink-0 pb-[0.6vh]"
+            items={list}
+            estimateSize={36}
+            gap={1.2}
+            getItemKey={(v) => v.model}
+            empty={
+              <div className="flex h-full flex-col items-center justify-center gap-[1vh] rounded-[1.4vh] border border-white/10 bg-white/2 text-text-3">
+                <FontAwesomeIcon icon={faCarSide} className="text-[2.4vh]" />
+                <span className="text-[1.5vh]">{t("UI_EMPTY")}</span>
+              </div>
+            }
+            renderItem={(v) => (
+              <div className="h-full w-[36vh]">
+                <VehicleCard vehicle={v} active={v.model === model} onClick={() => pick(v.model)} />
+              </div>
+            )}
+          />
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }

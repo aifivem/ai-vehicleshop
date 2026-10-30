@@ -7,6 +7,7 @@
   "SHOP_ERR_MONEY": "You do not have enough money",
   "UI_SHOWROOM": "Showroom",
   "UI_CLOSE": "Close",
+  "UI_ESC_CLOSE": "ESC to close",
   "UI_EMPTY": "Nothing in this category",
   "UI_PRICE": "${0}",
   "UI_BUY": "Buy",
