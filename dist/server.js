@@ -55,8 +55,21 @@ function vec4(value, fallback) {
 		heading: num(v.heading, fallback.heading)
 	};
 }
-// ../../../packages/lib/src/shared/records.ts
-const isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
+// ../../../packages/lib/src/shared/strict.ts
+function readInt(value, min, max) {
+	return Number.isInteger(value) && value >= min && value <= max ? value : null;
+}
+const readId = (value) => readInt(value, 1, 2147483647);
+function readText(value, max) {
+	if (typeof value != "string") return null;
+	let text = value.trim();
+	return text ? text.slice(0, max) : null;
+}
+// ../../../packages/lib/src/shared/action.ts
+const fail = (error) => ({
+	ok: !1,
+	error
+}), isObject = (value) => typeof value == "object" && !!value && !Array.isArray(value);
 function readRecords(raw, readOne) {
 	let out = new Map();
 	if (!isObject(raw)) return out;
@@ -297,7 +310,7 @@ const CORE = {
 	clientPlayerLoadedEvent: "ai-core:client:playerLoaded",
 	clientPlayerUnloadedEvent: "ai-core:client:playerUnloaded",
 	clientCharacterPortraitEvent: "ai-core:client:characterPortrait",
-	clientCharacterLookEvent: "ai-core:client:characterLook",
+	characterLooksEvent: "ai-core:client:characterLooks",
 	clientPromptPressedEvent: "ai-core:client:promptPressed",
 	clientCacheEvent: "ai-core:client:cache",
 	clientHudVisibleEvent: "ai-core:client:hudVisible",
@@ -354,6 +367,11 @@ function loadLocaleTexts(resource = GetCurrentResourceName()) {
 }
 // ../../../packages/lib/src/fivem/callbackNames.ts
 const requestEvent = (name) => `aicore:cb:${name}`, responseEvent = (resource) => `aicore:cbr:${resource}`;
+// ../../../packages/lib/src/server/position.ts
+function isNear(source, point, metres) {
+	let [x = 0, y = 0, z = 0] = GetEntityCoords(GetPlayerPed(String(source))), dx = x - point.x, dy = y - point.y, dz = z - point.z;
+	return dx * dx + dy * dy + dz * dz <= metres * metres;
+}
 resourceExport(CORE.resource);
 const log$5 = createLogger(GetCurrentResourceName()), gates = new Set();
 on("playerDropped", () => {
@@ -463,7 +481,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$14 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$15 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -477,7 +495,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$14.GetLookupValues(source);
+			list = core$15.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -680,7 +698,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$13 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
+const core$14 = resourceExport(CORE.resource), DEFAULT_KEY = "^[a-z0-9_]{2,32}$";
 function imported(spec, value) {
 	let base = clone(spec.newRecord ?? {}), out = {};
 	for (let name of Object.keys(spec.sections)) {
@@ -704,7 +722,7 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$13.RegisterAdminPanel(this.resource));
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges)), setImmediate(() => core$14.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -838,7 +856,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$13.AdminPanelChanged({
+		if (core$14.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -868,7 +886,7 @@ function aiLogChannels(channels) {
 }
 resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/online.ts
-const core$11 = resourceExport(CORE.resource);
+const core$12 = resourceExport(CORE.resource);
 var OnlinePlayers = class {
 	players = new Map();
 	onDuty = new Map();
@@ -877,7 +895,7 @@ var OnlinePlayers = class {
 		if (this.started) return;
 		this.started = !0;
 		let load = (source, character) => {
-			this.put(source, character, (core$11.GetJobs(source) ?? []).map((m) => m.job), (core$11.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$11.GetDutyJob(source));
+			this.put(source, character, (core$12.GetJobs(source) ?? []).map((m) => m.job), (core$12.GetGangs(source) ?? []).map((m) => m.gang)), this.setDuty(source, core$12.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => {
 			let player = this.players.get(source);
@@ -886,8 +904,8 @@ var OnlinePlayers = class {
 			let player = this.players.get(source);
 			player && (player.gangs = gangs.map((m) => m.gang));
 		}), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$11.GetLoadedSources()) {
-			let character = core$11.GetCharacter(source);
+		for (let source of core$12.GetLoadedSources()) {
+			let character = core$12.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -930,8 +948,15 @@ var OnlinePlayers = class {
 		return this.start(), this.onDuty.get(job) ?? EMPTY;
 	}
 };
-const EMPTY = new Set();
-new OnlinePlayers(), resourceExport(CORE.resource), resourceExport(CORE.resource), createLogger(GetCurrentResourceName());
+const EMPTY = new Set(), online = new OnlinePlayers();
+resourceExport(CORE.resource);
+// ../../../packages/lib/src/server/vehicle.ts
+function vehicleFromNet(netId) {
+	if (readId(netId) === null) return 0;
+	let entity = NetworkGetEntityFromNetworkId(netId);
+	return entity && DoesEntityExist(entity) && GetEntityType(entity) === 2 ? entity : 0;
+}
+resourceExport(CORE.resource), createLogger(GetCurrentResourceName());
 // ../../../packages/lib/src/server/command.ts
 const resource = GetCurrentResourceName();
 createLogger(resource), new class {
@@ -959,7 +984,7 @@ createLogger(resource), new class {
 			if (name === resource) for (let command of this.list) for (let n of command.info.names) emitNet("chat:removeSuggestion", -1, `/${n}`);
 		});
 	}
-}(), createLogger(GetCurrentResourceName()), createLogger("aicore-lib"), IsDuplicityVersion(), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+}(), createLogger(GetCurrentResourceName()), createLogger("aicore-lib"), IsDuplicityVersion(), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // resource/common/shop.ts
 const EVENTS = { buy: "ai-vehicleshop:buy" }, COLORS = [
 	0,
@@ -971,49 +996,102 @@ const EVENTS = { buy: "ai-vehicleshop:buy" }, COLORS = [
 	88,
 	38
 ], names = (v) => Array.isArray(v) ? v.filter((x) => typeof x == "string") : [];
-function readCatalog(raw) {
-	let out = new Map();
-	for (let [id, value] of Object.entries(record(raw))) {
-		let v = record(value), model = str(v.model, id, 32).toLowerCase();
-		out.set(id, {
-			model,
-			label: str(v.label, "", 48),
-			price: int(v.price, 0, 0, 1e8),
-			category: str(v.category, "other", 32)
-		});
-	}
-	return out;
+function readEntry(id, v) {
+	return {
+		model: str(v.model, id, 32).toLowerCase(),
+		label: str(v.label, "", 48),
+		price: int(v.price, 0, 0, 1e8),
+		category: str(v.category, "other", 32)
+	};
 }
-function readShops(raw) {
-	let out = new Map();
-	for (let [id, value] of Object.entries(record(raw))) {
-		let v = record(value), c = record(v.coords), at = {
-			x: num(c.x, 0),
-			y: num(c.y, 0),
-			z: num(c.z, 0),
-			heading: 0
-		};
-		out.set(id, {
-			ped: readPlacePed(v.ped),
-			id,
-			label: str(v.label, id, 48),
-			...at,
-			radius: num(v.radius, 5, 1, 30),
-			preview: vec4(v.preview, at),
-			camera: vec4(v.camera, at),
-			delivery: vec4(v.delivery, at),
-			categories: names(v.categories),
-			jobs: names(v.jobs),
-			blip: bool(v.blip, !0)
-		});
-	}
-	return out;
+function readShop(id, v) {
+	let c = record(v.coords), at = {
+		x: num(c.x, 0),
+		y: num(c.y, 0),
+		z: num(c.z, 0),
+		heading: 0
+	};
+	return {
+		ped: readPlacePed(v.ped),
+		id,
+		label: str(v.label, id, 48),
+		...at,
+		radius: num(v.radius, 5, 1, 30),
+		preview: vec4(v.preview, at),
+		camera: vec4(v.camera, at),
+		delivery: vec4(v.delivery, at),
+		categories: names(v.categories),
+		jobs: names(v.jobs),
+		blip: bool(v.blip, !0)
+	};
+}
+function readBlip(raw, fallback) {
+	let v = record(raw);
+	return {
+		sprite: int(v.sprite, fallback.sprite, 0, 1e3),
+		color: int(v.color, fallback.color, 0, 100),
+		scale: num(v.scale, fallback.scale, .3, 2)
+	};
+}
+function readSettings(raw) {
+	let v = record(raw), accounts = names(v.accounts);
+	return {
+		accounts: accounts.length > 0 ? accounts : ["bank", "cash"],
+		blip: readBlip(v.blip, {
+			sprite: 326,
+			color: 3,
+			scale: .7
+		}),
+		bikeBlip: readBlip(v.bikeBlip, {
+			sprite: 226,
+			color: 3,
+			scale: .7
+		})
+	};
 }
 // resource/server/schema.ts
-const shopSchema = {
+const blip = {
+	type: "object",
+	optional: !0,
+	fields: {
+		sprite: {
+			type: "number",
+			min: 0,
+			max: 1e3,
+			integer: !0
+		},
+		color: {
+			type: "number",
+			min: 0,
+			max: 100,
+			integer: !0
+		},
+		scale: {
+			type: "number",
+			min: .3,
+			max: 2
+		}
+	}
+}, shopSchema = {
 	title: "ADMIN_TITLE",
 	icon: "car",
 	files: {
+		settings: {
+			kind: "settings",
+			sync: "all",
+			sections: {
+				accounts: {
+					type: "names",
+					lookup: "account",
+					max: 5,
+					itemMax: 32,
+					pattern: "^[a-z0-9_]{2,32}$"
+				},
+				blip,
+				bikeBlip: blip
+			},
+			defaults: { accounts: ["bank", "cash"] }
+		},
 		catalog: {
 			kind: "records",
 			sync: "all",
@@ -1117,183 +1195,224 @@ const shopSchema = {
 			}
 		}
 	},
-	tabs: [{
-		id: "catalog",
-		file: "catalog",
-		icon: "car",
-		label: "ADMIN_TAB_CATALOG",
-		desc: "ADMIN_TAB_CATALOG_DESC",
-		listSub: "category",
-		createLabel: "ADMIN_NEW_VEHICLE",
-		deleteLabel: "ADMIN_DELETE_VEHICLE",
-		deleteDesc: "ADMIN_DELETE_VEHICLE_DESC",
-		cards: [{
+	tabs: [
+		{
+			id: "catalog",
+			file: "catalog",
 			icon: "car",
-			title: "ADMIN_C_VEHICLE",
-			desc: "ADMIN_C_VEHICLE_DESC",
-			fields: [
-				{
-					widget: "text",
-					path: "model",
-					label: "ADMIN_F_MODEL",
-					hint: "ADMIN_H_MODEL",
-					placeholder: "ADMIN_P_MODEL"
-				},
-				{
-					widget: "text",
-					path: "label",
-					label: "ADMIN_F_LABEL",
-					hint: "ADMIN_H_LABEL",
-					placeholder: "ADMIN_P_LABEL"
-				},
-				{
-					widget: "number",
-					path: "price",
-					label: "ADMIN_F_PRICE",
-					min: 0,
-					max: 1e8,
-					step: 1e3,
-					unit: "$"
-				},
-				{
-					widget: "text",
-					path: "category",
-					label: "ADMIN_F_CATEGORY",
-					hint: "ADMIN_H_CATEGORY",
-					placeholder: "ADMIN_P_CATEGORY"
-				}
-			]
-		}]
-	}, {
-		id: "shops",
-		file: "shops",
-		icon: "store",
-		label: "ADMIN_TAB_SHOPS",
-		desc: "ADMIN_TAB_SHOPS_DESC",
-		createLabel: "ADMIN_NEW_SHOP",
-		deleteLabel: "ADMIN_DELETE_SHOP",
-		cards: [
-			{
-				icon: "store",
-				title: "ADMIN_C_SHOP",
-				desc: "ADMIN_C_SHOP_DESC",
+			label: "ADMIN_TAB_CATALOG",
+			desc: "ADMIN_TAB_CATALOG_DESC",
+			listSub: "category",
+			createLabel: "ADMIN_NEW_VEHICLE",
+			deleteLabel: "ADMIN_DELETE_VEHICLE",
+			deleteDesc: "ADMIN_DELETE_VEHICLE_DESC",
+			cards: [{
+				icon: "car",
+				title: "ADMIN_C_VEHICLE",
+				desc: "ADMIN_C_VEHICLE_DESC",
 				fields: [
 					{
 						widget: "text",
-						path: "label",
-						suggest: { from: "coords" },
-						label: "ADMIN_F_SHOP_LABEL",
-						placeholder: "ADMIN_P_SHOP_LABEL"
+						path: "model",
+						label: "ADMIN_F_MODEL",
+						hint: "ADMIN_H_MODEL",
+						placeholder: "ADMIN_P_MODEL"
 					},
 					{
-						widget: "point",
-						path: "coords",
-						label: "ADMIN_F_COORDS",
-						hint: "ADMIN_H_COORDS",
-						ground: !0
+						widget: "text",
+						path: "label",
+						label: "ADMIN_F_LABEL",
+						hint: "ADMIN_H_LABEL",
+						placeholder: "ADMIN_P_LABEL"
 					},
 					{
 						widget: "number",
-						path: "radius",
-						label: "ADMIN_F_RADIUS",
-						min: 1,
-						max: 30,
-						unit: "m"
+						path: "price",
+						label: "ADMIN_F_PRICE",
+						min: 0,
+						max: 1e8,
+						step: 1e3,
+						unit: "$"
 					},
 					{
-						widget: "tags",
-						path: "categories",
-						label: "ADMIN_F_CATEGORIES",
-						hint: "ADMIN_H_CATEGORIES",
+						widget: "text",
+						path: "category",
+						label: "ADMIN_F_CATEGORY",
+						hint: "ADMIN_H_CATEGORY",
 						placeholder: "ADMIN_P_CATEGORY"
-					},
-					{
-						widget: "tags",
-						lookup: "job",
-						path: "jobs",
-						label: "ADMIN_F_JOBS",
-						hint: "ADMIN_H_JOBS",
-						placeholder: "ADMIN_P_JOBS"
-					},
-					{
-						widget: "switch",
-						path: "blip",
-						label: "ADMIN_F_BLIP"
 					}
 				]
-			},
-			{
-				icon: "camera",
-				title: "ADMIN_C_SHOWROOM",
-				desc: "ADMIN_C_SHOWROOM_DESC",
-				fields: [
-					{
-						widget: "point",
-						path: "preview",
-						label: "ADMIN_F_PREVIEW",
-						hint: "ADMIN_H_PREVIEW",
-						heading: !0,
-						ground: !0
-					},
-					{
-						widget: "point",
-						path: "camera",
-						label: "ADMIN_F_CAMERA",
-						hint: "ADMIN_H_CAMERA",
-						heading: !0,
-						from: "camera"
-					},
-					{
-						widget: "point",
-						path: "delivery",
-						label: "ADMIN_F_DELIVERY",
-						hint: "ADMIN_H_DELIVERY",
-						heading: !0,
-						ground: !0
-					}
-				]
-			},
-			{
-				icon: "user",
-				title: "ADMIN_C_PED",
-				desc: "ADMIN_C_PED_DESC",
-				fields: placePedFields()
-			}
-		]
-	}]
+			}]
+		},
+		{
+			id: "shops",
+			file: "shops",
+			icon: "store",
+			label: "ADMIN_TAB_SHOPS",
+			desc: "ADMIN_TAB_SHOPS_DESC",
+			createLabel: "ADMIN_NEW_SHOP",
+			deleteLabel: "ADMIN_DELETE_SHOP",
+			cards: [
+				{
+					icon: "store",
+					title: "ADMIN_C_SHOP",
+					desc: "ADMIN_C_SHOP_DESC",
+					fields: [
+						{
+							widget: "text",
+							path: "label",
+							suggest: { from: "coords" },
+							label: "ADMIN_F_SHOP_LABEL",
+							placeholder: "ADMIN_P_SHOP_LABEL"
+						},
+						{
+							widget: "point",
+							path: "coords",
+							label: "ADMIN_F_COORDS",
+							hint: "ADMIN_H_COORDS",
+							ground: !0
+						},
+						{
+							widget: "number",
+							path: "radius",
+							label: "ADMIN_F_RADIUS",
+							min: 1,
+							max: 30,
+							unit: "m"
+						},
+						{
+							widget: "tags",
+							path: "categories",
+							label: "ADMIN_F_CATEGORIES",
+							hint: "ADMIN_H_CATEGORIES",
+							placeholder: "ADMIN_P_CATEGORY"
+						},
+						{
+							widget: "tags",
+							lookup: "job",
+							path: "jobs",
+							label: "ADMIN_F_JOBS",
+							hint: "ADMIN_H_JOBS",
+							placeholder: "ADMIN_P_JOBS"
+						},
+						{
+							widget: "switch",
+							path: "blip",
+							label: "ADMIN_F_BLIP"
+						}
+					]
+				},
+				{
+					icon: "camera",
+					title: "ADMIN_C_SHOWROOM",
+					desc: "ADMIN_C_SHOWROOM_DESC",
+					fields: [
+						{
+							widget: "point",
+							path: "preview",
+							label: "ADMIN_F_PREVIEW",
+							hint: "ADMIN_H_PREVIEW",
+							heading: !0,
+							ground: !0
+						},
+						{
+							widget: "point",
+							path: "camera",
+							label: "ADMIN_F_CAMERA",
+							hint: "ADMIN_H_CAMERA",
+							heading: !0,
+							from: "camera"
+						},
+						{
+							widget: "point",
+							path: "delivery",
+							label: "ADMIN_F_DELIVERY",
+							hint: "ADMIN_H_DELIVERY",
+							heading: !0,
+							ground: !0
+						}
+					]
+				},
+				{
+					icon: "user",
+					title: "ADMIN_C_PED",
+					desc: "ADMIN_C_PED_DESC",
+					fields: placePedFields()
+				}
+			]
+		},
+		{
+			id: "settings",
+			file: "settings",
+			icon: "sliders",
+			label: "ADMIN_TAB_SETTINGS",
+			desc: "ADMIN_TAB_SETTINGS_DESC",
+			cards: [{
+				icon: "money-bill-wave",
+				title: "ADMIN_C_PAYMENT",
+				desc: "ADMIN_C_PAYMENT_DESC",
+				fields: [{
+					widget: "tags",
+					lookup: "account",
+					path: "accounts",
+					label: "ADMIN_F_ACCOUNTS",
+					hint: "ADMIN_H_ACCOUNTS",
+					placeholder: "ADMIN_P_ACCOUNTS"
+				}]
+			}, {
+				icon: "map",
+				title: "ADMIN_C_BLIPS",
+				desc: "ADMIN_C_BLIPS_DESC",
+				fields: [{
+					widget: "blip",
+					path: "blip",
+					label: "ADMIN_F_SHOP_BLIP"
+				}, {
+					widget: "blip",
+					path: "bikeBlip",
+					label: "ADMIN_F_BIKE_BLIP",
+					hint: "ADMIN_H_BIKE_BLIP"
+				}]
+			}]
+		}
+	]
 }, core = resourceExport("ai-core"), vehiclesApi = resourceExport("ai-vehicles"), panel = new AdminPanel(shopSchema), content = {
-	catalog: readCatalog(panel.get("catalog")),
-	shops: readShops(panel.get("shops"))
+	settings: panel.view("settings", readSettings),
+	catalog: panel.records("catalog", readEntry),
+	shops: panel.records("shops", readShop)
 };
-panel.onChange("catalog", () => content.catalog = readCatalog(panel.get("catalog"))), panel.onChange("shops", () => content.shops = readShops(panel.get("shops"))), aiLogChannels({ purchases: {} });
-const fail = (error) => ({
-	ok: !1,
-	error
-});
+aiLogChannels({ purchases: {} });
+function charge(source, price, reason) {
+	for (let account of content.settings.value.accounts) if (core.RemoveMoney(source, account, price, reason)) return account;
+	return null;
+}
 onClientCallback(EVENTS.buy, {
-	args: ([shopId, model, color]) => typeof shopId == "string" && typeof model == "string" && typeof color == "number" && COLORS.includes(color) ? [
-		shopId,
-		model,
-		color
-	] : null,
+	args: ([shopId, model, color]) => {
+		let shop = readText(shopId, 64), name = readText(model, 32);
+		return shop !== null && name !== null && typeof color == "number" && COLORS.includes(color) ? [
+			shop,
+			name,
+			color
+		] : null;
+	},
 	lock: !0
 }, async (source, shopId, model, color) => {
 	let shop = content.shops.get(shopId), entry = [...content.catalog.values()].find((e) => e.model === model);
 	if (!shop || !entry || !shop.categories.includes(entry.category)) return fail("SHOP_ERR_GONE");
-	let [x = 0, y = 0, z = 0] = GetEntityCoords(GetPlayerPed(String(source)));
-	if (Math.hypot(x - shop.x, y - shop.y, z - shop.z) > shop.radius + 3) return fail("SHOP_ERR_FAR");
-	if (shop.jobs.length && !(core.GetJobs(source) ?? []).some((m) => shop.jobs.includes(m.job))) return fail("SHOP_ERR_DENIED");
-	let character = core.GetCharacter(source);
+	if (!isNear(source, shop, shop.radius + 3)) return fail("SHOP_ERR_FAR");
+	if (shop.jobs.length && !online.jobs(source).some((job) => shop.jobs.includes(job))) return fail("SHOP_ERR_DENIED");
+	let character = online.character(source);
 	if (!character) return fail("SHOP_ERR_GONE");
-	if (!core.RemoveMoney(source, "bank", entry.price, `vehicle:${model}`) && !core.RemoveMoney(source, "cash", entry.price, `vehicle:${model}`)) return fail("SHOP_ERR_MONEY");
+	let reason = `vehicle:${model}`, account = charge(source, entry.price, reason);
+	if (account === null) return fail("SHOP_ERR_MONEY");
 	let created = vehiclesApi.CreateVehicle({
 		type: "character",
 		id: String(character.id)
 	}, model, null);
-	if (!created) return fail("SHOP_ERR_GONE");
+	if (!created) return core.AddMoney(source, account, entry.price, `${reason}:refund`), fail("SHOP_ERR_FAILED");
 	let netId = await new Promise((resolve) => vehiclesApi.SpawnVehicle(created.id, shop.delivery, source, resolve, "purchase"));
 	if (netId !== null) {
-		let entity = NetworkGetEntityFromNetworkId(netId);
+		let entity = vehicleFromNet(netId);
 		entity && SetVehicleColours(entity, color, color);
 	}
 	return aiLog("purchases", `bought ${model} (${created.plate}) for $${entry.price} at ${shop.id}`, {
@@ -1302,6 +1421,7 @@ onClientCallback(EVENTS.buy, {
 			model,
 			plate: created.plate,
 			price: entry.price,
+			account,
 			shop: shop.id
 		}
 	}), {

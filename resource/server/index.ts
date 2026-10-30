@@ -2,39 +2,46 @@ import {
   AdminPanel,
   aiLog,
   aiLogChannels,
+  isNear,
   onClientCallback,
+  online,
   resourceExport,
+  vehicleFromNet,
 } from "@aicore-fivem/lib/server";
-import { COLORS, EVENTS, readCatalog, readShops } from "common/shop";
+import { fail, readText } from "@aicore-fivem/lib/shared";
+import { COLORS, EVENTS, readEntry, readSettings, readShop } from "common/shop";
 import { shopSchema } from "./schema";
 
 const core = resourceExport("ai-core");
 const vehiclesApi = resourceExport("ai-vehicles");
 const panel = new AdminPanel(shopSchema);
-/** Catalog and shops, parsed again after every panel change. */
 const content = {
-  catalog: readCatalog(panel.get("catalog")),
-  shops: readShops(panel.get("shops")),
+  settings: panel.view("settings", readSettings),
+  catalog: panel.records("catalog", readEntry),
+  shops: panel.records("shops", readShop),
 };
-panel.onChange(
-  "catalog",
-  () => (content.catalog = readCatalog(panel.get("catalog"))),
-);
-panel.onChange("shops", () => (content.shops = readShops(panel.get("shops"))));
 aiLogChannels({ purchases: {} });
 
-const fail = (error: string) => ({ ok: false as const, error });
+/** Takes the price from the panel's accounts in order; answers the account it came from, or null. */
+function charge(source: number, price: number, reason: string): string | null {
+  for (const account of content.settings.value.accounts)
+    if (core.RemoveMoney(source, account, price, reason)) return account;
+  return null;
+}
 
 onClientCallback(
   EVENTS.buy,
   {
-    args: ([shopId, model, color]) =>
-      typeof shopId === "string" &&
-      typeof model === "string" &&
-      typeof color === "number" &&
-      (COLORS as readonly number[]).includes(color)
-        ? [shopId, model, color]
-        : null,
+    args: ([shopId, model, color]): [string, string, number] | null => {
+      const shop = readText(shopId, 64);
+      const name = readText(model, 32);
+      return shop !== null &&
+        name !== null &&
+        typeof color === "number" &&
+        (COLORS as readonly number[]).includes(color)
+        ? [shop, name, color]
+        : null;
+    },
     lock: true,
   },
   async (source, shopId, model, color) => {
@@ -42,27 +49,26 @@ onClientCallback(
     const entry = [...content.catalog.values()].find((e) => e.model === model);
     if (!shop || !entry || !shop.categories.includes(entry.category))
       return fail("SHOP_ERR_GONE");
-    const [x = 0, y = 0, z = 0] = GetEntityCoords(GetPlayerPed(String(source)));
-    if (Math.hypot(x - shop.x, y - shop.y, z - shop.z) > shop.radius + 3)
-      return fail("SHOP_ERR_FAR");
+    if (!isNear(source, shop, shop.radius + 3)) return fail("SHOP_ERR_FAR");
     if (
       shop.jobs.length &&
-      !(core.GetJobs(source) ?? []).some((m) => shop.jobs.includes(m.job))
+      !online.jobs(source).some((job) => shop.jobs.includes(job))
     )
       return fail("SHOP_ERR_DENIED");
-    const character = core.GetCharacter(source);
+    const character = online.character(source);
     if (!character) return fail("SHOP_ERR_GONE");
-    if (
-      !core.RemoveMoney(source, "bank", entry.price, `vehicle:${model}`) &&
-      !core.RemoveMoney(source, "cash", entry.price, `vehicle:${model}`)
-    )
-      return fail("SHOP_ERR_MONEY");
+    const reason = `vehicle:${model}`;
+    const account = charge(source, entry.price, reason);
+    if (account === null) return fail("SHOP_ERR_MONEY");
     const created = vehiclesApi.CreateVehicle(
       { type: "character", id: String(character.id) },
       model,
       null,
     );
-    if (!created) return fail("SHOP_ERR_GONE");
+    if (!created) {
+      core.AddMoney(source, account, entry.price, `${reason}:refund`);
+      return fail("SHOP_ERR_FAILED");
+    }
     const netId = await new Promise<number | null>((resolve) =>
       vehiclesApi.SpawnVehicle(
         created.id,
@@ -73,7 +79,7 @@ onClientCallback(
       ),
     );
     if (netId !== null) {
-      const entity = NetworkGetEntityFromNetworkId(netId);
+      const entity = vehicleFromNet(netId);
       // The picked colour; the owner's client saves it with the other props on the first parking.
       if (entity) SetVehicleColours(entity, color, color);
     }
@@ -86,6 +92,7 @@ onClientCallback(
           model,
           plate: created.plate,
           price: entry.price,
+          account,
           shop: shop.id,
         },
       },

@@ -1,0 +1,7 @@
+{
+  "$schema": "./schemas/settings.schema.json",
+  "accounts": [
+    "bank",
+    "cash"
+  ]
+}

@@ -25,6 +25,7 @@ files {
 	'dist/web/assets/*.woff',
 	'dist/web/assets/*.woff2',
 	'dist/web/*.html',
+	'data/settings.json',
 	'data/catalog.json',
 	'data/shops.json',
 }

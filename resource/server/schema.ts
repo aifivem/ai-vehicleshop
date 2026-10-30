@@ -1,11 +1,37 @@
 import { PLACE_PED_SPEC, placePedFields } from "@aicore-fivem/lib/shared";
 import type { PanelSchema } from "@aicore-fivem/shared";
 
-/** ai-vehicleshop's panel: the vehicle catalog and the shops that sell its categories. */
+const blip = {
+  type: "object",
+  optional: true,
+  fields: {
+    sprite: { type: "number", min: 0, max: 1000, integer: true },
+    color: { type: "number", min: 0, max: 100, integer: true },
+    scale: { type: "number", min: 0.3, max: 2 },
+  },
+} as const;
+
+/** ai-vehicleshop's panel: the vehicle catalog, the shops that sell its categories, payment and map look. */
 export const shopSchema: PanelSchema = {
   title: "ADMIN_TITLE",
   icon: "car",
   files: {
+    settings: {
+      kind: "settings",
+      sync: "all",
+      sections: {
+        accounts: {
+          type: "names",
+          lookup: "account",
+          max: 5,
+          itemMax: 32,
+          pattern: "^[a-z0-9_]{2,32}$",
+        },
+        blip: blip,
+        bikeBlip: blip,
+      },
+      defaults: { accounts: ["bank", "cash"] },
+    },
     catalog: {
       kind: "records",
       sync: "all",
@@ -204,6 +230,44 @@ export const shopSchema: PanelSchema = {
           title: "ADMIN_C_PED",
           desc: "ADMIN_C_PED_DESC",
           fields: placePedFields(),
+        },
+      ],
+    },
+    {
+      id: "settings",
+      file: "settings",
+      icon: "sliders",
+      label: "ADMIN_TAB_SETTINGS",
+      desc: "ADMIN_TAB_SETTINGS_DESC",
+      cards: [
+        {
+          icon: "money-bill-wave",
+          title: "ADMIN_C_PAYMENT",
+          desc: "ADMIN_C_PAYMENT_DESC",
+          fields: [
+            {
+              widget: "tags",
+              lookup: "account",
+              path: "accounts",
+              label: "ADMIN_F_ACCOUNTS",
+              hint: "ADMIN_H_ACCOUNTS",
+              placeholder: "ADMIN_P_ACCOUNTS",
+            },
+          ],
+        },
+        {
+          icon: "map",
+          title: "ADMIN_C_BLIPS",
+          desc: "ADMIN_C_BLIPS_DESC",
+          fields: [
+            { widget: "blip", path: "blip", label: "ADMIN_F_SHOP_BLIP" },
+            {
+              widget: "blip",
+              path: "bikeBlip",
+              label: "ADMIN_F_BIKE_BLIP",
+              hint: "ADMIN_H_BIKE_BLIP",
+            },
+          ],
         },
       ],
     },

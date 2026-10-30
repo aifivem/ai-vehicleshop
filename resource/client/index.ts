@@ -1,25 +1,32 @@
 import {
   AdminWorld,
   cache,
+  callAction,
   hud,
   loadLocaleTexts,
   notify,
   onCache,
   Points,
   requestModel,
-  triggerServerCallback,
 } from "@aicore-fivem/lib/client";
-import { Locale } from "common";
+import { isRecord } from "@aicore-fivem/lib/shared";
+import { Locale, ResourceName } from "common";
 import {
   COLORS,
   EVENTS,
-  readCatalog,
-  readShops,
+  readEntry,
+  readSettings,
+  readShop,
   type NuiMessage,
   type Shop,
 } from "common/shop";
 
-const world = new AdminWorld(["catalog", "shops"]);
+const world = new AdminWorld(["settings", "catalog", "shops"]);
+const content = {
+  settings: world.view("settings", readSettings),
+  catalog: world.records("catalog", readEntry),
+  shops: world.records("shops", readShop),
+};
 const texts = loadLocaleTexts();
 const send = (m: NuiMessage): void => SendNUIMessage(m);
 
@@ -50,7 +57,7 @@ class Showroom {
     );
     SetCamActive(this.camera, true);
     RenderScriptCams(true, true, 500, true, true);
-    const catalog = readCatalog(world.get("catalog"));
+    const catalog = content.catalog;
     const vehicles = [...catalog.values()]
       .filter((e) => shop.categories.includes(e.category))
       .map((e) => ({
@@ -118,7 +125,8 @@ const showroom = new Showroom();
 const points = new Points();
 function rebuild(): void {
   points.clear();
-  for (const shop of readShops(world.get("shops")).values())
+  const { blip, bikeBlip } = content.settings.value;
+  for (const shop of content.shops.values())
     points.add(`vshop:${shop.id}`, {
       ped: shop.ped ?? undefined,
       coords: { x: shop.x, y: shop.y, z: shop.z },
@@ -127,13 +135,10 @@ function rebuild(): void {
       radius: shop.radius,
       blip: shop.blip
         ? {
-            sprite:
-              shop.categories.includes("motorcycles") &&
-              shop.categories.length === 1
-                ? 226
-                : 326,
-            color: 3,
-            scale: 0.7,
+            ...(shop.categories.includes("motorcycles") &&
+            shop.categories.length === 1
+              ? bikeBlip
+              : blip),
             label: shop.label,
           }
         : undefined,
@@ -144,18 +149,17 @@ function rebuild(): void {
 
 rebuild();
 world.onChange("shops", rebuild);
+world.onChange("settings", rebuild);
 onCache("vehicle", () => points.refresh());
 
 type Reply = (r: unknown) => void;
-const isObj = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null;
 RegisterNuiCallback("preview", (d: unknown, cb: Reply) => {
-  if (isObj(d) && typeof d.model === "string" && typeof d.color === "number")
+  if (isRecord(d) && typeof d.model === "string" && typeof d.color === "number")
     void showroom.show(d.model, d.color);
   cb({ ok: true });
 });
 RegisterNuiCallback("color", (d: unknown, cb: Reply) => {
-  if (isObj(d) && typeof d.color === "number") showroom.color(d.color);
+  if (isRecord(d) && typeof d.color === "number") showroom.color(d.color);
   cb({ ok: true });
 });
 RegisterNuiCallback("close", (_d: unknown, cb: Reply) => {
@@ -166,36 +170,27 @@ RegisterNuiCallback("buy", (d: unknown, cb: Reply) => {
   const shop = showroom.shop;
   if (
     !shop ||
-    !isObj(d) ||
+    !isRecord(d) ||
     typeof d.model !== "string" ||
     typeof d.color !== "number"
   )
     return cb({ ok: false });
-  void triggerServerCallback(EVENTS.buy, [shop.id, d.model, d.color], 15_000)
-    .catch(() => null)
-    .then((result) => {
-      const ok = isObj(result) && result.ok === true;
-      cb({ ok });
-      if (ok) {
-        showroom.close();
-        notify(
-          Locale(
-            "SHOP_BOUGHT",
-            isObj(result) && typeof result.plate === "string"
-              ? result.plate
-              : "",
-          ),
-          "success",
-        );
-      } else {
-        const error =
-          isObj(result) && typeof result.error === "string"
-            ? result.error
-            : "SHOP_ERR_GONE";
-        notify(texts[error] ?? error, "error");
-      }
-    });
+  void callAction(EVENTS.buy, [shop.id, d.model, d.color], {
+    fallback: "SHOP_ERR_GONE",
+    timeout: 15_000,
+  }).then((result) => {
+    cb({ ok: result !== null });
+    if (!result) return;
+    showroom.close();
+    notify(
+      Locale(
+        "SHOP_BOUGHT",
+        typeof result.plate === "string" ? result.plate : "",
+      ),
+      "success",
+    );
+  });
 });
 on("onResourceStop", (resource: string) => {
-  if (resource === GetCurrentResourceName() && showroom.shop) showroom.close();
+  if (resource === ResourceName && showroom.shop) showroom.close();
 });

@@ -51,42 +51,69 @@ export const COLORS = [0, 111, 4, 27, 64, 53, 88, 38] as const;
 const names = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 
-export function readCatalog(raw: unknown): Map<string, CatalogEntry> {
-  const out = new Map<string, CatalogEntry>();
-  for (const [id, value] of Object.entries(record(raw))) {
-    const v = record(value);
-    const model = str(v.model, id, 32).toLowerCase();
-    out.set(id, {
-      model,
-      label: str(v.label, "", 48),
-      price: int(v.price, 0, 0, 100_000_000),
-      category: str(v.category, "other", 32),
-    });
-  }
-  return out;
+/** One catalog record (`panel.records` / `world.records`). */
+export function readEntry(
+  id: string,
+  v: Record<string, unknown>,
+): CatalogEntry {
+  return {
+    model: str(v.model, id, 32).toLowerCase(),
+    label: str(v.label, "", 48),
+    price: int(v.price, 0, 0, 100_000_000),
+    category: str(v.category, "other", 32),
+  };
 }
 
-export function readShops(raw: unknown): Map<string, Shop> {
-  const out = new Map<string, Shop>();
-  for (const [id, value] of Object.entries(record(raw))) {
-    const v = record(value);
-    const c = record(v.coords);
-    const at = { x: num(c.x, 0), y: num(c.y, 0), z: num(c.z, 0), heading: 0 };
-    out.set(id, {
-      ped: readPlacePed(v.ped),
-      id,
-      label: str(v.label, id, 48),
-      ...at,
-      radius: num(v.radius, 5, 1, 30),
-      preview: vec4(v.preview, at),
-      camera: vec4(v.camera, at),
-      delivery: vec4(v.delivery, at),
-      categories: names(v.categories),
-      jobs: names(v.jobs),
-      blip: bool(v.blip, true),
-    });
-  }
-  return out;
+/** One shop record (`panel.records` / `world.records`). */
+export function readShop(id: string, v: Record<string, unknown>): Shop {
+  const c = record(v.coords);
+  const at = { x: num(c.x, 0), y: num(c.y, 0), z: num(c.z, 0), heading: 0 };
+  return {
+    ped: readPlacePed(v.ped),
+    id,
+    label: str(v.label, id, 48),
+    ...at,
+    radius: num(v.radius, 5, 1, 30),
+    preview: vec4(v.preview, at),
+    camera: vec4(v.camera, at),
+    delivery: vec4(v.delivery, at),
+    categories: names(v.categories),
+    jobs: names(v.jobs),
+    blip: bool(v.blip, true),
+  };
+}
+
+export interface BlipStyle {
+  sprite: number;
+  color: number;
+  scale: number;
+}
+
+export interface Settings {
+  /** Accounts a purchase is paid from, tried in order. */
+  accounts: string[];
+  /** Map blip of shops; `bikeBlip` for a shop that sells only motorcycles. */
+  blip: BlipStyle;
+  bikeBlip: BlipStyle;
+}
+
+function readBlip(raw: unknown, fallback: BlipStyle): BlipStyle {
+  const v = record(raw);
+  return {
+    sprite: int(v.sprite, fallback.sprite, 0, 1000),
+    color: int(v.color, fallback.color, 0, 100),
+    scale: num(v.scale, fallback.scale, 0.3, 2),
+  };
+}
+
+export function readSettings(raw: unknown): Settings {
+  const v = record(raw);
+  const accounts = names(v.accounts);
+  return {
+    accounts: accounts.length > 0 ? accounts : ["bank", "cash"],
+    blip: readBlip(v.blip, { sprite: 326, color: 3, scale: 0.7 }),
+    bikeBlip: readBlip(v.bikeBlip, { sprite: 226, color: 3, scale: 0.7 }),
+  };
 }
 
 export interface ShopView {
