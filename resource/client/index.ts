@@ -1,6 +1,7 @@
 import {
   AdminWorld,
   cache,
+  hud,
   loadLocaleTexts,
   notify,
   onCache,
@@ -61,6 +62,7 @@ class Showroom {
         category: e.category,
       }));
     SetNuiFocus(true, true);
+    hud.hide("vehicleshop");
     send({
       action: "open",
       data: {
@@ -100,6 +102,7 @@ class Showroom {
     }
     this.shop = null;
     SetNuiFocus(false, false);
+    hud.show("vehicleshop");
     send({ action: "close", data: null });
   }
 

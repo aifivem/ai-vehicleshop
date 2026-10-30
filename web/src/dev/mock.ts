@@ -11,6 +11,7 @@ export const MOCK_OPEN = {
     id: "pdm",
     label: shop.label,
     vehicles: Object.values(catalog)
+      .filter((e) => typeof e !== "string")
       .filter((e) => shop.categories.includes(e.category))
       .map((e) => ({
         model: e.model,
