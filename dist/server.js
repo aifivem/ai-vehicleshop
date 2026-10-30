@@ -24728,6 +24728,7 @@ const shopSchema = {
 		listSub: "category",
 		createLabel: "ADMIN_NEW_VEHICLE",
 		deleteLabel: "ADMIN_DELETE_VEHICLE",
+		deleteDesc: "ADMIN_DELETE_VEHICLE_DESC",
 		cards: [{
 			icon: "car",
 			title: "ADMIN_C_VEHICLE",

@@ -25,7 +25,7 @@
   "ADMIN_TAB_CATALOG": "Catalog",
   "ADMIN_TAB_CATALOG_DESC": "Every vehicle players can buy, its price and category.",
   "ADMIN_NEW_VEHICLE": "New vehicle",
-  "ADMIN_DELETE_VEHICLE": "Remove this vehicle from the catalog? Vehicles players own stay theirs.",
+  "ADMIN_DELETE_VEHICLE": "Remove vehicle from the catalog",
   "ADMIN_C_VEHICLE": "Vehicle",
   "ADMIN_C_VEHICLE_DESC": "Which model it is and what it costs.",
   "ADMIN_F_MODEL": "Model",
@@ -41,7 +41,7 @@
   "ADMIN_TAB_SHOPS": "Shops",
   "ADMIN_TAB_SHOPS_DESC": "Where players buy vehicles and which categories each shop sells.",
   "ADMIN_NEW_SHOP": "New shop",
-  "ADMIN_DELETE_SHOP": "Delete this shop?",
+  "ADMIN_DELETE_SHOP": "Delete shop",
   "ADMIN_C_SHOP": "Shop",
   "ADMIN_C_SHOP_DESC": "Where players open the shop and what it sells.",
   "ADMIN_F_SHOP_LABEL": "Shop name",
@@ -62,5 +62,6 @@
   "ADMIN_F_CAMERA": "Camera",
   "ADMIN_H_CAMERA": "Look at the preview spot with the game camera and use the camera position.",
   "ADMIN_F_DELIVERY": "Delivery spot",
-  "ADMIN_H_DELIVERY": "Where bought vehicles appear, facing your direction."
+  "ADMIN_H_DELIVERY": "Where bought vehicles appear, facing your direction.",
+  "ADMIN_DELETE_VEHICLE_DESC": "Vehicles players own stay theirs."
 }
