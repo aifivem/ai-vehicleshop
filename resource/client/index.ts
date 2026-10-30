@@ -1,11 +1,9 @@
-import { AdminWorld, cache, hidePrompt, loadLocaleTexts, notify, onPromptPressed, requestModel, showPrompt, triggerServerCallback, Zones } from "@aicore-fivem/lib/client";
+import { AdminWorld, cache, loadLocaleTexts, notify, onCache, Points, requestModel, triggerServerCallback } from "@aicore-fivem/lib/client";
 import { Locale } from "common";
 import { COLORS, EVENTS, readCatalog, readShops, type NuiMessage, type Shop } from "common/shop";
 
 const world = new AdminWorld(["catalog", "shops"]);
 const texts = loadLocaleTexts();
-const BLIP_TEXT = "AISHOP_BLIP";
-AddTextEntry(BLIP_TEXT, "~a~");
 const send = (m: NuiMessage): void => SendNUIMessage(m);
 
 /**
@@ -72,46 +70,25 @@ class Showroom {
 
 const showroom = new Showroom();
 
-/** Shop zones with ai-core's prompt and blips, rebuilt on panel changes. */
-class Shops {
-  private readonly zones = new Zones();
-  private blips: number[] = [];
-  list = readShops(world.get("shops"));
-
-  rebuild(): void {
-    this.list = readShops(world.get("shops"));
-    this.zones.clear();
-    for (const blip of this.blips) RemoveBlip(blip);
-    this.blips = [];
-    for (const shop of this.list.values()) {
-      const id = `vshop:${shop.id}`;
-      this.zones.add(id, {
-        shape: { type: "sphere", center: { x: shop.x, y: shop.y, z: shop.z }, radius: shop.radius },
-        interval: 500,
-        onEnter: () => showPrompt(id, Locale("SHOP_PROMPT", shop.label)),
-        onExit: () => hidePrompt(id),
-      });
-      if (!shop.blip) continue;
-      const blip = AddBlipForCoord(shop.x, shop.y, shop.z);
-      SetBlipSprite(blip, shop.categories.includes("motorcycles") && shop.categories.length === 1 ? 226 : 326);
-      SetBlipColour(blip, 3);
-      SetBlipScale(blip, 0.7);
-      SetBlipAsShortRange(blip, true);
-      BeginTextCommandSetBlipName(BLIP_TEXT);
-      AddTextComponentSubstringPlayerName(shop.label);
-      EndTextCommandSetBlipName(blip);
-      this.blips.push(blip);
-    }
-  }
+/** Shop points with their blips, rebuilt on panel changes. */
+const points = new Points();
+function rebuild(): void {
+  points.clear();
+  for (const shop of readShops(world.get("shops")).values())
+    points.add(`vshop:${shop.id}`, {
+      coords: { x: shop.x, y: shop.y, z: shop.z },
+      label: Locale("SHOP_PROMPT", shop.label),
+      icon: "car",
+      radius: shop.radius,
+      blip: shop.blip ? { sprite: shop.categories.includes("motorcycles") && shop.categories.length === 1 ? 226 : 326, color: 3, scale: 0.7, label: shop.label } : undefined,
+      canShow: () => cache.vehicle === false && !showroom.shop,
+      onPressed: () => showroom.open(shop),
+    });
 }
 
-const shops = new Shops();
-shops.rebuild();
-world.onChange("shops", () => shops.rebuild());
-onPromptPressed((id) => {
-  const shop = id.startsWith("vshop:") ? shops.list.get(id.slice("vshop:".length)) : undefined;
-  if (shop && cache.vehicle === false && !showroom.shop) showroom.open(shop);
-});
+rebuild();
+world.onChange("shops", rebuild);
+onCache("vehicle", () => points.refresh());
 
 type Reply = (r: unknown) => void;
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;

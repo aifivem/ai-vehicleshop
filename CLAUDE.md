@@ -16,5 +16,5 @@ Vehicle shops: a catalog (model, price, category) and shops that sell some categ
 ## Entry points
 
 - Server: buying `resource/server/index.ts`; panel `server/schema.ts`.
-- Client: showroom camera and preview, zones `resource/client/index.ts`.
+- Client: showroom camera and preview, shop points (lib `Points`, shown on foot only) `resource/client/index.ts`.
 - NUI (tgiann-vehicleshop look, full screen over the preview camera): `web/src/App.tsx`, detail and cards in `web/src/features/`; browser preview `bun run webdev`.
