@@ -1,12 +1,4 @@
-import {
-  bool,
-  int,
-  num,
-  record,
-  str,
-  vec4,
-  type Vec4,
-} from "@aicore-fivem/lib/shared";
+import { bool, int, num, record, str, vec4, type Vec4, readPlacePed, type PlacePed } from "@aicore-fivem/lib/shared";
 
 /** ai-vehicleshop's contracts and panel content. No natives. */
 
@@ -24,6 +16,8 @@ export interface CatalogEntry {
 }
 
 export interface Shop {
+  /** NPC standing at the place (panel), null for none. */
+  ped: PlacePed | null;
   id: string;
   label: string;
   x: number;
@@ -69,6 +63,7 @@ export function readShops(raw: unknown): Map<string, Shop> {
     const c = record(v.coords);
     const at = { x: num(c.x, 0), y: num(c.y, 0), z: num(c.z, 0), heading: 0 };
     out.set(id, {
+      ped: readPlacePed(v.ped),
       id,
       label: str(v.label, id, 48),
       ...at,

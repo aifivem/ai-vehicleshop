@@ -117,6 +117,7 @@ function rebuild(): void {
   points.clear();
   for (const shop of readShops(world.get("shops")).values())
     points.add(`vshop:${shop.id}`, {
+      ped: shop.ped ?? undefined,
       coords: { x: shop.x, y: shop.y, z: shop.z },
       label: Locale("SHOP_PROMPT", shop.label),
       icon: "car",

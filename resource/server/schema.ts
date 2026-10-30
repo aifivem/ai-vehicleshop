@@ -1,3 +1,4 @@
+import { PLACE_PED_SPEC, placePedFields } from "@aicore-fivem/lib/shared";
 import type { PanelSchema } from "@aicore-fivem/shared";
 
 /** ai-vehicleshop's panel: the vehicle catalog and the shops that sell its categories. */
@@ -38,6 +39,7 @@ export const shopSchema: PanelSchema = {
         blip: true,
       },
       sections: {
+        ped: PLACE_PED_SPEC,
         label: { type: "text", min: 1, max: 48 },
         coords: { type: "vec3" },
         radius: { type: "number", min: 1, max: 30 },
@@ -196,6 +198,12 @@ export const shopSchema: PanelSchema = {
               ground: true,
             },
           ],
+        },
+        {
+          icon: "user",
+          title: "ADMIN_C_PED",
+          desc: "ADMIN_C_PED_DESC",
+          fields: placePedFields(),
         },
       ],
     },
