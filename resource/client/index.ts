@@ -8,6 +8,7 @@ import {
   onCache,
   Points,
   requestModel,
+  vehicleLabel,
 } from "@aicore-fivem/lib/client";
 import { isRecord } from "@aicore-fivem/lib/shared";
 import { Locale, ResourceName } from "common";
@@ -63,8 +64,7 @@ class Showroom {
       .map((e) => ({
         model: e.model,
         label:
-          e.label ||
-          GetLabelText(GetDisplayNameFromVehicleModel(GetHashKey(e.model))),
+          e.label || vehicleLabel(e.model),
         price: e.price,
         category: e.category,
       }));
