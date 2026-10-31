@@ -3,28 +3,28 @@
   "pdm": {
     "label": "Premium Deluxe Motorsport",
     "coords": {
-      "x": -56.7,
-      "y": -1098.7,
+      "x": -45.67,
+      "y": -1098.34,
       "z": 26.42
     },
     "radius": 6,
     "preview": {
-      "x": -44.7,
-      "y": -1097.4,
-      "z": 26.42,
-      "heading": 115
+      "x": -45.65,
+      "y": -1093.66,
+      "z": 25.44,
+      "heading": 69.5
     },
     "camera": {
-      "x": -49.1,
-      "y": -1101.6,
-      "z": 28,
-      "heading": 315
+      "x": -45.67,
+      "y": -1098.34,
+      "z": 27.04,
+      "heading": 359.76
     },
     "delivery": {
-      "x": -28.4,
-      "y": -1085.6,
-      "z": 26.57,
-      "heading": 70
+      "x": -56.79,
+      "y": -1109.85,
+      "z": 26.43,
+      "heading": 71.5
     },
     "categories": [
       "compacts",
@@ -35,6 +35,138 @@
       "muscle",
       "offroad",
       "vans"
+    ],
+    "jobs": [],
+    "blip": true
+  },
+  "luxury": {
+    "label": "Luxury Vehicle Shop",
+    "coords": {
+      "x": -1255.6,
+      "y": -361.16,
+      "z": 36.91
+    },
+    "radius": 6,
+    "preview": {
+      "x": -1265.31,
+      "y": -354.44,
+      "z": 35.91,
+      "heading": 205.08
+    },
+    "camera": {
+      "x": -1260.38,
+      "y": -357.85,
+      "z": 37.51,
+      "heading": 55.31
+    },
+    "delivery": {
+      "x": -1231.46,
+      "y": -349.86,
+      "z": 37.33,
+      "heading": 26.61
+    },
+    "categories": [
+      "sports",
+      "super"
+    ],
+    "jobs": [],
+    "blip": true
+  },
+  "boats": {
+    "label": "Marina Shop",
+    "coords": {
+      "x": -738.25,
+      "y": -1334.38,
+      "z": 1.6
+    },
+    "radius": 6,
+    "preview": {
+      "x": -727.05,
+      "y": -1326.59,
+      "z": 0,
+      "heading": 229.5
+    },
+    "camera": {
+      "x": -732.8,
+      "y": -1330.59,
+      "z": 1.6,
+      "heading": 304.82
+    },
+    "delivery": {
+      "x": -727.87,
+      "y": -1353.1,
+      "z": -0.17,
+      "heading": 137.09
+    },
+    "categories": [
+      "boats"
+    ],
+    "jobs": [],
+    "blip": true
+  },
+  "air": {
+    "label": "Air Shop",
+    "coords": {
+      "x": -1652.76,
+      "y": -3143.4,
+      "z": 13.99
+    },
+    "radius": 6,
+    "preview": {
+      "x": -1651.36,
+      "y": -3162.66,
+      "z": 12.99,
+      "heading": 346.89
+    },
+    "camera": {
+      "x": -1652.37,
+      "y": -3148.7,
+      "z": 15.99,
+      "heading": 184.16
+    },
+    "delivery": {
+      "x": -1617.49,
+      "y": -3086.17,
+      "z": 13.94,
+      "heading": 329.2
+    },
+    "categories": [
+      "helicopters",
+      "planes"
+    ],
+    "jobs": [],
+    "blip": true
+  },
+  "truck": {
+    "label": "Truck Motor Shop",
+    "coords": {
+      "x": 900.47,
+      "y": -1155.74,
+      "z": 25.16
+    },
+    "radius": 6,
+    "preview": {
+      "x": 890.84,
+      "y": -1170.92,
+      "z": 25.08,
+      "heading": 269.58
+    },
+    "camera": {
+      "x": 896.2,
+      "y": -1162.48,
+      "z": 27.08,
+      "heading": 147.61
+    },
+    "delivery": {
+      "x": 909.35,
+      "y": -1181.58,
+      "z": 25.55,
+      "heading": 177.57
+    },
+    "categories": [
+      "commercial",
+      "industrial",
+      "utility"
     ],
     "jobs": [],
     "blip": true
