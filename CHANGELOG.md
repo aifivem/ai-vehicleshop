@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/aifivem/ai-vehicleshop/compare/v0.1.1...v0.1.2) (2026-10-31)
+
+
+### Miscellaneous Chores
+
+* rebuild with the current lib ([66108d5](https://github.com/aifivem/ai-vehicleshop/commit/66108d5a0248840d7fa1e2980b2843f2d548e4a0))
+
 ## [0.1.1](https://github.com/aifivem/ai-vehicleshop/compare/v0.1.0...v0.1.1) (2026-10-31)
 
 
