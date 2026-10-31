@@ -65,7 +65,61 @@ function readText(value, max) {
 const fail = (error) => ({
 	ok: !1,
 	error
-}), BLIP_STYLE_FIELDS = {
+}), names$1 = (v) => Array.isArray(v) ? v.filter((x) => typeof x == "string") : [];
+function readAccess(value) {
+	let v = record(value), grades = {};
+	for (let [name, grade] of Object.entries(record(v.grades))) typeof grade == "number" && Number.isInteger(grade) && grade >= 0 && (grades[name] = grade);
+	return {
+		jobs: names$1(v.jobs),
+		gangs: names$1(v.gangs),
+		grades,
+		onDuty: bool(v.onDuty, !1)
+	};
+}
+const isPublic = (rule) => rule.jobs.length === 0 && rule.gangs.length === 0, ACCESS_FIELDS = {
+	jobs: {
+		type: "names",
+		lookup: "job",
+		optional: !0
+	},
+	gangs: {
+		type: "names",
+		lookup: "gang",
+		optional: !0
+	},
+	onDuty: {
+		type: "bool",
+		optional: !0
+	}
+};
+function accessFields() {
+	return [
+		{
+			widget: "tags",
+			lookup: "job",
+			path: "jobs",
+			label: "ADMIN_F_ACCESS_JOBS",
+			hint: "ADMIN_H_ACCESS_JOBS",
+			placeholder: "ADMIN_P_ACCESS_JOBS"
+		},
+		{
+			widget: "tags",
+			lookup: "gang",
+			path: "gangs",
+			label: "ADMIN_F_ACCESS_GANGS",
+			hint: "ADMIN_H_ACCESS_GANGS",
+			placeholder: "ADMIN_P_ACCESS_GANGS"
+		},
+		{
+			widget: "switch",
+			path: "onDuty",
+			label: "ADMIN_F_ACCESS_ON_DUTY",
+			hint: "ADMIN_H_ACCESS_ON_DUTY"
+		}
+	];
+}
+// ../../../packages/lib/src/shared/blipStyle.ts
+const BLIP_STYLE_FIELDS = {
 	sprite: {
 		type: "number",
 		min: 0,
@@ -140,6 +194,28 @@ var FileViews = class {
 		if (key === void 0) return this.reset(whole);
 		let parsed = isObject(value) ? this.readOne(key, value) : null;
 		parsed === null ? this.map.delete(key) : this.map.set(key, parsed);
+	}
+}, RecordObjects = class {
+	build;
+	records;
+	built = new Map();
+	constructor(source, file, readOne, build) {
+		this.build = build, this.records = source.records(file, readOne), source.onChange(file, (key) => key === void 0 ? this.rebuildAll() : this.rebuild(key)), this.rebuildAll();
+	}
+	rebuild(key) {
+		this.built.get(key)?.(), this.built.delete(key);
+		let record = this.records.get(key);
+		if (record === void 0) return;
+		let remove = this.build(key, record);
+		remove && this.built.set(key, remove);
+	}
+	rebuildAll() {
+		for (let remove of this.built.values()) remove();
+		this.built.clear();
+		for (let [key, record] of this.records) {
+			let remove = this.build(key, record);
+			remove && this.built.set(key, remove);
+		}
 	}
 };
 // ../../../packages/lib/src/shared/placePed.ts
@@ -354,6 +430,7 @@ const CORE = {
 }, ADMIN = {
 	ace: "ai.admin",
 	openCallback: "ai-core:admin:open",
+	panelDataCallback: "ai-core:admin:panelData",
 	applyCallback: "ai-core:admin:apply",
 	closeEvent: "ai-core:admin:close",
 	showEvent: "ai-core:admin:show",
@@ -509,7 +586,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$16 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$17 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -523,7 +600,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$16.GetLookupValues(source);
+			list = core$17.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -788,7 +865,7 @@ function writeSchema(resource, name, text, log) {
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
 // ../../../packages/lib/src/server/admin/panel.ts
-const core$15 = resourceExport(CORE.resource);
+const core$16 = resourceExport(CORE.resource);
 var AdminPanel = class {
 	schema;
 	data = new Map();
@@ -804,10 +881,10 @@ var AdminPanel = class {
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
+		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
 			count: 4,
 			windowMs: 1e4
-		} }), setImmediate(() => core$15.RegisterAdminPanel(this.resource));
+		} }), setImmediate(() => core$16.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -833,6 +910,27 @@ var AdminPanel = class {
 			schema: this.schema,
 			texts: loadLocaleTexts(),
 			data: clone(Object.fromEntries(this.data))
+		};
+	}
+	summary() {
+		let data = {}, index = {};
+		for (let [file, spec] of Object.entries(this.schema.files)) {
+			let content = this.data.get(file);
+			if (spec.kind !== "records") {
+				data[file] = clone(content ?? {});
+				continue;
+			}
+			let labels = {};
+			for (let [key, record] of Object.entries(content ?? {})) labels[key] = labelOf(record, spec.labelPath) ?? key;
+			index[file] = labels;
+		}
+		return {
+			resource: this.resource,
+			schema: this.schema,
+			texts: loadLocaleTexts(),
+			data,
+			loaded: !1,
+			index
 		};
 	}
 	apply(admin, raw) {
@@ -897,7 +995,7 @@ var AdminPanel = class {
 		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
 		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
 		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$15.AdminPanelChanged({
+		if (core$16.AdminPanelChanged({
 			resource: this.resource,
 			file,
 			key,
@@ -918,6 +1016,15 @@ var AdminPanel = class {
 		this.data.set(name, data), (filled || raw === null || !file.hasSchemaRef()) && file.write(data);
 	}
 };
+function labelOf(record, path) {
+	if (!path) return null;
+	let at = record;
+	for (let part of path.split(".")) {
+		if (typeof at != "object" || !at) return null;
+		at = at[part];
+	}
+	return typeof at == "string" && at !== "" ? at : null;
+}
 // ../../../packages/lib/src/server/log.ts
 function aiLog(channel, message, options) {
 	optionalExport("ai-core")?.Log(channel, message, options);
@@ -927,7 +1034,7 @@ function aiLogChannels(channels) {
 }
 resourceExport(CORE.resource);
 // ../../../packages/lib/src/server/online.ts
-const core$13 = resourceExport(CORE.resource);
+const core$14 = resourceExport(CORE.resource);
 function reindex(index, source, before, after) {
 	for (let name of before) {
 		let set = index.get(name);
@@ -955,11 +1062,11 @@ var OnlinePlayers = class {
 				gangs: [],
 				gangNames: [],
 				duty: null
-			}), this.setJobs(source, core$13.GetJobs(source) ?? []), this.setGangs(source, core$13.GetGangs(source) ?? []), this.setDuty(source, core$13.GetDutyJob(source));
+			}), this.setJobs(source, core$14.GetJobs(source) ?? []), this.setGangs(source, core$14.GetGangs(source) ?? []), this.setDuty(source, core$14.GetDutyJob(source));
 		};
 		on(CORE.playerLoadedEvent, load), on(CORE.playerUnloadedEvent, (source) => this.drop(source)), on(CORE.jobsChangedEvent, (source, jobs) => this.setJobs(source, jobs)), on(CORE.gangsChangedEvent, (source, gangs) => this.setGangs(source, gangs)), on(CORE.dutyChangedEvent, (source, job) => this.setDuty(source, job));
-		for (let source of core$13.GetLoadedSources()) {
-			let character = core$13.GetCharacter(source);
+		for (let source of core$14.GetLoadedSources()) {
+			let character = core$14.GetCharacter(source);
 			character && load(source, character);
 		}
 	}
@@ -1028,6 +1135,20 @@ var OnlinePlayers = class {
 		let duty = this.dutyJob(source);
 		return duty !== null && jobs.includes(duty);
 	}
+	allows(source, rule) {
+		if (isPublic(rule)) return !0;
+		let min = (name) => rule.grades[name] ?? 0;
+		for (let gang of rule.gangs) {
+			let grade = this.gangGrade(source, gang);
+			if (grade !== null && grade >= min(gang)) return !0;
+		}
+		let duty = rule.onDuty ? this.dutyJob(source) : null;
+		for (let job of rule.jobs) {
+			let grade = this.jobGrade(source, job);
+			if (grade !== null && grade >= min(job) && (!rule.onDuty || duty === job)) return !0;
+		}
+		return !1;
+	}
 	countOnDuty(jobs) {
 		this.start();
 		let count = 0;
@@ -1062,6 +1183,25 @@ on(CORE.playerUnloadedEvent, (source) => {
 	let settle = running.get(source);
 	settle && settle(!1);
 });
+// ../../../packages/lib/src/server/definitions.ts
+const core$11 = resourceExport("ai-core");
+new class {
+	jobs = new Map();
+	gangs = new Map();
+	constructor() {
+		on(CORE.definitionsChangedEvent, (file, name) => {
+			typeof name == "string" && (file === "jobs" ? this.jobs.delete(name) : file === "gangs" && this.gangs.delete(name));
+		});
+	}
+	job(name) {
+		let def = this.jobs.get(name);
+		return def === void 0 && this.jobs.set(name, def = core$11.GetJobDefinition(name) ?? null), def;
+	}
+	gang(name) {
+		let def = this.gangs.get(name);
+		return def === void 0 && this.gangs.set(name, def = core$11.GetGangDefinition(name) ?? null), def;
+	}
+}();
 // ../../../packages/lib/src/server/command.ts
 const resource = GetCurrentResourceName();
 createLogger(resource), new class {
@@ -1213,7 +1353,7 @@ function readShop(id, v) {
 		camera: vec4(v.camera, at),
 		delivery: vec4(v.delivery, at),
 		categories: names(v.categories),
-		jobs: names(v.jobs),
+		access: readAccess(v),
 		blip: bool(v.blip, !0)
 	};
 }
@@ -1333,6 +1473,7 @@ const blip = {
 				},
 				categories: [],
 				jobs: [],
+				gangs: [],
 				blip: !0
 			},
 			sections: {
@@ -1357,13 +1498,7 @@ const blip = {
 					itemMax: 32,
 					pattern: "^[a-z0-9_]{2,32}$"
 				},
-				jobs: {
-					type: "names",
-					lookup: "job",
-					max: 20,
-					itemMax: 32,
-					pattern: "^[a-z0-9_]{2,32}$"
-				},
+				...ACCESS_FIELDS,
 				blip: { type: "bool" }
 			}
 		}
@@ -1460,14 +1595,7 @@ const blip = {
 							hint: "ADMIN_H_CATEGORIES",
 							placeholder: "ADMIN_P_CATEGORY"
 						},
-						{
-							widget: "tags",
-							lookup: "job",
-							path: "jobs",
-							label: "ADMIN_F_JOBS",
-							hint: "ADMIN_H_JOBS",
-							placeholder: "ADMIN_P_JOBS"
-						},
+						...accessFields(),
 						{
 							widget: "switch",
 							path: "blip",
@@ -1551,10 +1679,11 @@ const blip = {
 	]
 }, core = resourceExport("ai-core"), vehiclesApi = resourceExport("ai-vehicles"), panel = new AdminPanel(shopSchema), content = {
 	settings: panel.view("settings", readSettings),
-	catalog: panel.records("catalog", readEntry),
 	shops: panel.records("shops", readShop)
-};
-aiLogChannels({ purchases: {} });
+}, byModel = new Map();
+new RecordObjects(panel, "catalog", readEntry, (_id, entry) => {
+	if (!byModel.has(entry.model)) return byModel.set(entry.model, entry), () => byModel.delete(entry.model);
+}), aiLogChannels({ purchases: {} });
 function charge(source, price, reason) {
 	for (let account of content.settings.value.accounts) if (core.RemoveMoney(source, account, price, reason)) return account;
 	return null;
@@ -1570,10 +1699,10 @@ onClientCallback(EVENTS.buy, {
 	},
 	lock: !0
 }, async (source, shopId, model, color) => {
-	let shop = content.shops.get(shopId), entry = [...content.catalog.values()].find((e) => e.model === model);
+	let shop = content.shops.get(shopId), entry = byModel.get(model);
 	if (!shop || !entry || !shop.categories.includes(entry.category)) return fail("SHOP_ERR_GONE");
 	if (!isNear(source, shop, shop.radius + 3)) return fail("SHOP_ERR_FAR");
-	if (shop.jobs.length && !online.jobs(source).some((job) => shop.jobs.includes(job))) return fail("SHOP_ERR_DENIED");
+	if (!online.allows(source, shop.access)) return fail("SHOP_ERR_DENIED");
 	let character = online.character(source);
 	if (!character) return fail("SHOP_ERR_GONE");
 	let reason = `vehicle:${model}`, account = charge(source, entry.price, reason);
@@ -1598,4 +1727,4 @@ onClientCallback(EVENTS.buy, {
 		netId,
 		plate: created.plate
 	};
-});
+}), registerExport("GetCatalogPrice", (model) => typeof model == "string" ? byModel.get(model.toLowerCase())?.price ?? null : null);

@@ -5,10 +5,18 @@ import {
   isNear,
   onClientCallback,
   online,
+  registerExport,
   resourceExport,
 } from "@aicore-fivem/lib/server";
-import { fail, readText } from "@aicore-fivem/lib/shared";
-import { COLORS, EVENTS, readEntry, readSettings, readShop } from "common/shop";
+import { fail, readText, RecordObjects } from "@aicore-fivem/lib/shared";
+import {
+  COLORS,
+  EVENTS,
+  readEntry,
+  readSettings,
+  readShop,
+  type CatalogEntry,
+} from "common/shop";
 import { shopSchema } from "./schema";
 
 const core = resourceExport("ai-core");
@@ -16,9 +24,15 @@ const vehiclesApi = resourceExport("ai-vehicles");
 const panel = new AdminPanel(shopSchema);
 const content = {
   settings: panel.view("settings", readSettings),
-  catalog: panel.records("catalog", readEntry),
   shops: panel.records("shops", readShop),
 };
+/** Catalog entries by model, kept per edited entry (the first record of a model wins). */
+const byModel = new Map<string, CatalogEntry>();
+new RecordObjects(panel, "catalog", readEntry, (_id, entry) => {
+  if (byModel.has(entry.model)) return;
+  byModel.set(entry.model, entry);
+  return () => byModel.delete(entry.model);
+});
 aiLogChannels({ purchases: {} });
 
 /** Takes the price from the panel's accounts in order; answers the account it came from, or null. */
@@ -45,15 +59,11 @@ onClientCallback(
   },
   async (source, shopId, model, color) => {
     const shop = content.shops.get(shopId);
-    const entry = [...content.catalog.values()].find((e) => e.model === model);
+    const entry = byModel.get(model);
     if (!shop || !entry || !shop.categories.includes(entry.category))
       return fail("SHOP_ERR_GONE");
     if (!isNear(source, shop, shop.radius + 3)) return fail("SHOP_ERR_FAR");
-    if (
-      shop.jobs.length &&
-      !online.jobs(source).some((job) => shop.jobs.includes(job))
-    )
-      return fail("SHOP_ERR_DENIED");
+    if (!online.allows(source, shop.access)) return fail("SHOP_ERR_DENIED");
     const character = online.character(source);
     if (!character) return fail("SHOP_ERR_GONE");
     const reason = `vehicle:${model}`;
@@ -96,3 +106,9 @@ onClientCallback(
     return { ok: true, netId, plate: created.plate };
   },
 );
+
+/** A model's catalog price (ai-vehiclesales' dealer buy-back); null when the catalog has no such model. */
+registerExport("GetCatalogPrice", (model: unknown) => {
+  if (typeof model !== "string") return null;
+  return byModel.get(model.toLowerCase())?.price ?? null;
+});

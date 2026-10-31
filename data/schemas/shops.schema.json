@@ -177,15 +177,24 @@
           }
         },
         "jobs": {
-          "description": "Jobs: Empty: everyone may buy. Otherwise only these jobs (a police fleet dealer).",
+          "description": "Jobs: Only members of these jobs can use it. Leave jobs and gangs empty for everyone.",
           "type": "array",
-          "maxItems": 20,
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "maxLength": 32,
-            "pattern": "^[a-z0-9_]{2,32}$"
+            "type": "string"
           }
+        },
+        "gangs": {
+          "description": "Gangs: Members of these gangs can use it too.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "onDuty": {
+          "description": "Only on duty: Job members must be on duty in that job.",
+          "type": "boolean"
         },
         "blip": {
           "description": "Map blip",
@@ -200,7 +209,6 @@
         "camera",
         "delivery",
         "categories",
-        "jobs",
         "blip"
       ]
     }

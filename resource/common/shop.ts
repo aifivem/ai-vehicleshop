@@ -1,8 +1,10 @@
 import {
+  type AccessRule,
   bool,
   int,
   num,
   type PlacePed,
+  readAccess,
   readBlipStyle,
   readPlacePed,
   record,
@@ -42,7 +44,8 @@ export interface Shop {
   /** Where a bought vehicle appears. */
   delivery: Vec4;
   categories: string[];
-  jobs: string[];
+  /** Who may buy here (lib access fields; empty: everyone). */
+  access: AccessRule;
   blip: boolean;
 }
 
@@ -79,7 +82,7 @@ export function readShop(id: string, v: Record<string, unknown>): Shop {
     camera: vec4(v.camera, at),
     delivery: vec4(v.delivery, at),
     categories: names(v.categories),
-    jobs: names(v.jobs),
+    access: readAccess(v),
     blip: bool(v.blip, true),
   };
 }

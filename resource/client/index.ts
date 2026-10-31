@@ -1,16 +1,19 @@
 import {
   AdminWorld,
+  allows,
   cache,
   callAction,
   loadLocaleTexts,
   notify,
   NuiScreen,
   onCache,
+  onMembershipChange,
   Points,
   requestModel,
+  ScriptCamera,
   vehicleLabel,
 } from "@aicore-fivem/lib/client";
-import { isRecord } from "@aicore-fivem/lib/shared";
+import { isPublic, isRecord, RecordObjects } from "@aicore-fivem/lib/shared";
 import { Locale, ResourceName } from "common";
 import {
   COLORS,
@@ -26,7 +29,6 @@ const world = new AdminWorld(["settings", "catalog", "shops"]);
 const content = {
   settings: world.view("settings", readSettings),
   catalog: world.records("catalog", readEntry),
-  shops: world.records("shops", readShop),
 };
 const texts = loadLocaleTexts();
 /** The showroom page; closing it ends the preview and the camera. */
@@ -40,27 +42,18 @@ const page = new NuiScreen<NuiMessage>("vehicleshop", {
  */
 class Showroom {
   shop: Shop | null = null;
-  private camera = 0;
+  private readonly camera = new ScriptCamera();
   private preview = 0;
   private token = 0;
 
   open(shop: Shop): void {
     this.shop = shop;
     const c = shop.camera;
-    this.camera = CreateCamWithParams(
-      "DEFAULT_SCRIPTED_CAMERA",
-      c.x,
-      c.y,
-      c.z,
-      -8,
-      0,
-      c.heading,
-      50,
-      false,
-      0,
+    this.camera.start(
+      c,
+      { rotation: { x: -8, y: 0, z: c.heading }, fov: 50 },
+      500,
     );
-    SetCamActive(this.camera, true);
-    RenderScriptCams(true, true, 500, true, true);
     const catalog = content.catalog;
     const vehicles = [...catalog.values()]
       .filter((e) => shop.categories.includes(e.category))
@@ -103,11 +96,7 @@ class Showroom {
   end(): void {
     this.token++;
     this.clearPreview();
-    if (this.camera) {
-      RenderScriptCams(false, true, 400, true, true);
-      DestroyCam(this.camera, false);
-      this.camera = 0;
-    }
+    this.camera.stop(400);
     this.shop = null;
   }
 
@@ -119,19 +108,21 @@ class Showroom {
 
 const showroom = new Showroom();
 
-/** Shop points with their blips, rebuilt on panel changes. */
+/**
+ * Shop points with their blips: an edited shop rebuilds only its own point, the blip settings every shop. A shop locked
+ * to jobs or gangs shows (and has a blip) only for who passes its access rule.
+ */
 const points = new Points();
-function rebuild(): void {
-  points.clear();
+const shops = new RecordObjects(world, "shops", readShop, (id, shop) => {
   const { blip, bikeBlip } = content.settings.value;
-  for (const shop of content.shops.values())
-    points.add(`vshop:${shop.id}`, {
-      ped: shop.ped ?? undefined,
-      coords: { x: shop.x, y: shop.y, z: shop.z },
-      label: Locale("SHOP_PROMPT", shop.label),
-      icon: "car",
-      radius: shop.radius,
-      blip: shop.blip
+  points.add(`vshop:${id}`, {
+    ped: shop.ped ?? undefined,
+    coords: { x: shop.x, y: shop.y, z: shop.z },
+    label: Locale("SHOP_PROMPT", shop.label),
+    icon: "car",
+    radius: shop.radius,
+    blip:
+      shop.blip && allows(shop.access)
         ? {
             ...(shop.categories.includes("motorcycles") &&
             shop.categories.length === 1
@@ -140,14 +131,19 @@ function rebuild(): void {
             label: shop.label,
           }
         : undefined,
-      canShow: () => cache.vehicle === false && !showroom.shop,
-      onPressed: () => showroom.open(shop),
-    });
-}
+    canShow: () =>
+      cache.vehicle === false && !showroom.shop && allows(shop.access),
+    onPressed: () => showroom.open(shop),
+  });
+  return () => points.remove(`vshop:${id}`);
+});
 
-rebuild();
-world.onChange("shops", rebuild);
-world.onChange("settings", rebuild);
+world.onChange("settings", () => shops.rebuildAll());
+// Blips follow memberships: only the locked shops are built again.
+onMembershipChange(() => {
+  for (const [id, shop] of shops.records)
+    if (!isPublic(shop.access)) shops.rebuild(id);
+});
 onCache("vehicle", () => points.refresh());
 
 page.on(
