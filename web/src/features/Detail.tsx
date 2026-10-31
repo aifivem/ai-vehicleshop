@@ -4,6 +4,7 @@ import type { ShopView } from "../../../resource/common/shop";
 import { Button } from "../components/ui/button";
 import { useLang } from "../lib/lang";
 import { cn } from "../lib/utils";
+import { groupDigits } from "@aicore-fivem/lib/shared";
 
 /** Swatch colours for the GTA colour indexes in `COLORS` (same order). */
 const SWATCH = [
@@ -44,7 +45,7 @@ export function Detail({
         </span>
         <div className="flex flex-wrap items-center gap-[1vh]">
           <span className="text-[1.8vh] font-bold text-tgi-green tabular-nums">
-            {t("UI_PRICE", vehicle.price.toLocaleString("en-US"))}
+            {t("UI_PRICE", groupDigits(vehicle.price))}
           </span>
           <span className="rounded-full border border-white/10 px-[1.4vh] py-[0.7vh] text-[1.3vh] leading-none font-medium text-warn uppercase">
             {t(`CATEGORY_${vehicle.category.toUpperCase()}`)}

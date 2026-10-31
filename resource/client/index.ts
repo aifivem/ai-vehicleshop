@@ -8,13 +8,14 @@ import {
   NuiScreen,
   onCache,
   onMembershipChange,
+  onStop,
   Points,
-  requestModel,
+  PreviewVehicle,
   ScriptCamera,
   vehicleLabel,
 } from "@aicore-fivem/lib/client";
 import { isPublic, isRecord, RecordObjects } from "@aicore-fivem/lib/shared";
-import { Locale, ResourceName } from "common";
+import { Locale } from "common";
 import {
   COLORS,
   EVENTS,
@@ -43,8 +44,7 @@ const page = new NuiScreen<NuiMessage>("vehicleshop", {
 class Showroom {
   shop: Shop | null = null;
   private readonly camera = new ScriptCamera();
-  private preview = 0;
-  private token = 0;
+  private readonly preview = new PreviewVehicle();
 
   open(shop: Shop): void {
     this.shop = shop;
@@ -75,34 +75,21 @@ class Showroom {
 
   async show(model: string, color: number): Promise<void> {
     if (!this.shop) return;
-    const token = ++this.token;
-    const hash = await requestModel(model).catch(() => 0);
-    if (!hash || token !== this.token || !this.shop) return;
-    this.clearPreview();
-    const p = this.shop.preview;
-    this.preview = CreateVehicle(hash, p.x, p.y, p.z, p.heading, false, false);
-    SetVehicleColours(this.preview, color, color);
-    SetVehicleDirtLevel(this.preview, 0);
-    FreezeEntityPosition(this.preview, true);
-    SetEntityInvincible(this.preview, true);
-    SetModelAsNoLongerNeeded(hash);
+    await this.preview.show(model, this.shop.preview, (vehicle) =>
+      SetVehicleColours(vehicle, color, color),
+    );
   }
 
   color(color: number): void {
-    if (this.preview) SetVehicleColours(this.preview, color, color);
+    const vehicle = this.preview.vehicle;
+    if (vehicle) SetVehicleColours(vehicle, color, color);
   }
 
   /** The page closed: the preview vehicle and the camera go. */
   end(): void {
-    this.token++;
-    this.clearPreview();
+    this.preview.clear();
     this.camera.stop(400);
     this.shop = null;
-  }
-
-  private clearPreview(): void {
-    if (this.preview) DeleteEntity(this.preview);
-    this.preview = 0;
   }
 }
 
@@ -184,6 +171,6 @@ page.on(
     return { ok: true };
   },
 );
-on("onResourceStop", (resource: string) => {
-  if (resource === ResourceName && showroom.shop) page.close();
+onStop(() => {
+  if (showroom.shop) page.close();
 });

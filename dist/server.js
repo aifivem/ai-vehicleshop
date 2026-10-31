@@ -420,6 +420,8 @@ const CORE = {
 	vehicleTypeCallback: "ai-core:vehicleType",
 	interactionStateKey: "ai:interaction",
 	pvpStateKey: "ai:pvp",
+	medicalStateKey: "ai:medical",
+	clientDeadEvent: "ai-core:client:dead",
 	charactersCallback: "ai-core:characters",
 	createCharacterCallback: "ai-core:createCharacter",
 	deleteCharacterCallback: "ai-core:deleteCharacter",
@@ -1110,6 +1112,9 @@ var OnlinePlayers = class {
 	character(source) {
 		return this.start(), this.players.get(source)?.character ?? null;
 	}
+	charId(source) {
+		return this.start(), this.players.get(source)?.character.id;
+	}
 	name(source, options = {}) {
 		let c = this.character(source);
 		return c ? `${c.firstname} ${c.lastname}` : options.fallback === !1 ? "" : GetPlayerName(String(source));
@@ -1361,23 +1366,16 @@ function readShop(id, v) {
 		blip: bool(v.blip, !0)
 	};
 }
-function readBlip(raw, fallback) {
-	return readBlipStyle(record(raw), {
-		sprite: fallback.sprite,
-		color: fallback.color,
-		scale: fallback.scale
-	});
-}
 function readSettings(raw) {
 	let v = record(raw), accounts = names(v.accounts);
 	return {
 		accounts: accounts.length > 0 ? accounts : ["bank", "cash"],
-		blip: readBlip(v.blip, {
+		blip: readBlipStyle(v.blip, {
 			sprite: 326,
 			color: 3,
 			scale: .7
 		}),
-		bikeBlip: readBlip(v.bikeBlip, {
+		bikeBlip: readBlipStyle(v.bikeBlip, {
 			sprite: 226,
 			color: 3,
 			scale: .7

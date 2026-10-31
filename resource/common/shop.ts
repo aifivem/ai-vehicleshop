@@ -101,22 +101,13 @@ export interface Settings {
   bikeBlip: BlipStyle;
 }
 
-function readBlip(raw: unknown, fallback: BlipStyle): BlipStyle {
-  const v = record(raw);
-  return readBlipStyle(v, {
-    sprite: fallback.sprite,
-    color: fallback.color,
-    scale: fallback.scale,
-  });
-}
-
 export function readSettings(raw: unknown): Settings {
   const v = record(raw);
   const accounts = names(v.accounts);
   return {
     accounts: accounts.length > 0 ? accounts : ["bank", "cash"],
-    blip: readBlip(v.blip, { sprite: 326, color: 3, scale: 0.7 }),
-    bikeBlip: readBlip(v.bikeBlip, { sprite: 226, color: 3, scale: 0.7 }),
+    blip: readBlipStyle(v.blip, { sprite: 326, color: 3, scale: 0.7 }),
+    bikeBlip: readBlipStyle(v.bikeBlip, { sprite: 226, color: 3, scale: 0.7 }),
   };
 }
 

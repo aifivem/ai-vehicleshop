@@ -3,6 +3,7 @@ import type { ShopView } from "../../../resource/common/shop";
 import { useLang } from "../lib/lang";
 import { cn } from "../lib/utils";
 import { categoryIcon } from "./categoryIcon";
+import { groupDigits } from "@aicore-fivem/lib/shared";
 
 /** One vehicle of the bottom strip (tgiann-vehicleshop card): glyph block, name, class chip, green price. */
 export function VehicleCard({
@@ -46,7 +47,7 @@ export function VehicleCard({
           </span>
         </span>
         <span className="text-[1.5vh] font-semibold text-tgi-green tabular-nums">
-          {t("UI_PRICE", vehicle.price.toLocaleString("en-US"))}
+          {t("UI_PRICE", groupDigits(vehicle.price))}
         </span>
       </span>
     </button>
