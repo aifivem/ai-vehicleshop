@@ -100,7 +100,11 @@ export interface Settings {
 
 function readBlip(raw: unknown, fallback: BlipStyle): BlipStyle {
   const v = record(raw);
-  return readBlipStyle(v, { sprite: fallback.sprite, color: fallback.color, scale: fallback.scale });
+  return readBlipStyle(v, {
+    sprite: fallback.sprite,
+    color: fallback.color,
+    scale: fallback.scale,
+  });
 }
 
 export function readSettings(raw: unknown): Settings {

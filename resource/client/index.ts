@@ -2,9 +2,9 @@ import {
   AdminWorld,
   cache,
   callAction,
-  hud,
   loadLocaleTexts,
   notify,
+  NuiScreen,
   onCache,
   Points,
   requestModel,
@@ -29,7 +29,10 @@ const content = {
   shops: world.records("shops", readShop),
 };
 const texts = loadLocaleTexts();
-const send = (m: NuiMessage): void => SendNUIMessage(m);
+/** The showroom page; closing it ends the preview and the camera. */
+const page = new NuiScreen<NuiMessage>("vehicleshop", {
+  onClose: () => showroom.end(),
+});
 
 /**
  * The showroom: a local preview vehicle at the shop's preview point under a scripted camera while the screen is open.
@@ -63,14 +66,11 @@ class Showroom {
       .filter((e) => shop.categories.includes(e.category))
       .map((e) => ({
         model: e.model,
-        label:
-          e.label || vehicleLabel(e.model),
+        label: e.label || vehicleLabel(e.model),
         price: e.price,
         category: e.category,
       }));
-    SetNuiFocus(true, true);
-    hud.hide("vehicleshop");
-    send({
+    page.open({
       action: "open",
       data: {
         texts,
@@ -99,7 +99,8 @@ class Showroom {
     if (this.preview) SetVehicleColours(this.preview, color, color);
   }
 
-  close(): void {
+  /** The page closed: the preview vehicle and the camera go. */
+  end(): void {
     this.token++;
     this.clearPreview();
     if (this.camera) {
@@ -108,9 +109,6 @@ class Showroom {
       this.camera = 0;
     }
     this.shop = null;
-    SetNuiFocus(false, false);
-    hud.show("vehicleshop");
-    send({ action: "close", data: null });
   }
 
   private clearPreview(): void {
@@ -152,36 +150,34 @@ world.onChange("shops", rebuild);
 world.onChange("settings", rebuild);
 onCache("vehicle", () => points.refresh());
 
-type Reply = (r: unknown) => void;
-RegisterNuiCallback("preview", (d: unknown, cb: Reply) => {
-  if (isRecord(d) && typeof d.model === "string" && typeof d.color === "number")
-    void showroom.show(d.model, d.color);
-  cb({ ok: true });
-});
-RegisterNuiCallback("color", (d: unknown, cb: Reply) => {
-  if (isRecord(d) && typeof d.color === "number") showroom.color(d.color);
-  cb({ ok: true });
-});
-RegisterNuiCallback("close", (_d: unknown, cb: Reply) => {
-  showroom.close();
-  cb({ ok: true });
-});
-RegisterNuiCallback("buy", (d: unknown, cb: Reply) => {
-  const shop = showroom.shop;
-  if (
-    !shop ||
-    !isRecord(d) ||
-    typeof d.model !== "string" ||
-    typeof d.color !== "number"
-  )
-    return cb({ ok: false });
-  void callAction(EVENTS.buy, [shop.id, d.model, d.color], {
-    fallback: "SHOP_ERR_GONE",
-    timeout: 15_000,
-  }).then((result) => {
-    cb({ ok: result !== null });
-    if (!result) return;
-    showroom.close();
+page.on(
+  "preview",
+  (d) =>
+    isRecord(d) && typeof d.model === "string" && typeof d.color === "number"
+      ? { model: d.model, color: d.color }
+      : null,
+  ({ model, color }) => void showroom.show(model, color),
+);
+page.on(
+  "color",
+  (d) => (isRecord(d) && typeof d.color === "number" ? d.color : null),
+  (color) => showroom.color(color),
+);
+page.on(
+  "buy",
+  (d) =>
+    isRecord(d) && typeof d.model === "string" && typeof d.color === "number"
+      ? { model: d.model, color: d.color }
+      : null,
+  async ({ model, color }) => {
+    const shop = showroom.shop;
+    if (!shop) return { ok: false };
+    const result = await callAction(EVENTS.buy, [shop.id, model, color], {
+      fallback: "SHOP_ERR_GONE",
+      timeout: 15_000,
+    });
+    if (!result) return { ok: false };
+    page.close();
     notify(
       Locale(
         "SHOP_BOUGHT",
@@ -189,8 +185,9 @@ RegisterNuiCallback("buy", (d: unknown, cb: Reply) => {
       ),
       "success",
     );
-  });
-});
+    return { ok: true };
+  },
+);
 on("onResourceStop", (resource: string) => {
-  if (resource === ResourceName && showroom.shop) showroom.close();
+  if (resource === ResourceName && showroom.shop) page.close();
 });
