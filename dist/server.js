@@ -540,7 +540,7 @@ var ClientGate = class {
 	}
 };
 // ../../../packages/lib/src/server/callback.ts
-const log$4 = createLogger(GetCurrentResourceName()), resource$1 = GetCurrentResourceName(), REFUSED = Symbol("refused");
+const log$4 = createLogger(GetCurrentResourceName()), resource$2 = GetCurrentResourceName(), REFUSED = Symbol("refused");
 function onClientCallback(name, first, second) {
 	let [handler, options] = typeof first == "function" ? [first, second ?? {}] : [second, first], gate = new ClientGate(name, options, 20);
 	onNet(requestEvent(name), async (caller, id, ...raw) => {
@@ -557,7 +557,7 @@ function onClientCallback(name, first, second) {
 	});
 }
 const pending = new Map();
-onNet(responseEvent(resource$1), (id, ok, result) => {
+onNet(responseEvent(resource$2), (id, ok, result) => {
 	let entry = typeof id == "number" ? pending.get(id) : void 0;
 	entry && entry.source === Number(globalThis.source) && (pending.delete(id), clearTimeout(entry.timer), ok === !0 ? entry.resolve(result) : entry.reject(Error("client callback failed")));
 });
@@ -603,7 +603,7 @@ function toPatch(value) {
 		default: return null;
 	}
 }
-const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$26 = resourceExport(CORE.resource), ERR = {
+const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(value)), core$27 = resourceExport(CORE.resource), ERR = {
 	type: "ADMIN_ERR_TYPE",
 	range: "ADMIN_ERR_RANGE",
 	length: "ADMIN_ERR_LENGTH",
@@ -617,7 +617,7 @@ const clone = (value) => value === void 0 ? value : JSON.parse(JSON.stringify(va
 		if (cached && Date.now() - cached.at < 2e3) return cached.values.size > 0 ? cached.values : null;
 		let list = [];
 		try {
-			list = core$26.GetLookupValues(source);
+			list = core$27.GetLookupValues(source);
 		} catch {}
 		let values = new Set(Array.isArray(list) ? list.filter((v) => typeof v == "string") : []);
 		return this.lists.set(source, {
@@ -746,11 +746,7 @@ function applyEdit(data, patch, spec) {
 	}
 	return [spec.kind === "records" ? patch.key : void 0];
 }
-// ../../../packages/lib/src/server/admin/jsonSchema.ts
-const SCHEMA_KEY = {
-	type: "string",
-	description: "This file's JSON Schema (for editors)."
-};
+// ../../../packages/lib/src/server/admin/descriptions.ts
 function langFile(resource) {
 	try {
 		let raw = JSON.parse(LoadResourceFile(resource, "locales/en.json") ?? "{}");
@@ -777,6 +773,11 @@ function describe(schema, file, lang) {
 	for (let tab of schema.tabs) if (tab.file === file) for (let card of tab.cards) collect(card.fields, "", lang, out);
 	return out;
 }
+// ../../../packages/lib/src/server/admin/jsonSchema.ts
+const SCHEMA_KEY = {
+	type: "string",
+	description: "This file's JSON Schema (for editors)."
+};
 function toJson(spec, path, desc) {
 	let description = desc.get(path), base = description ? { description } : {};
 	switch (spec.type) {
@@ -881,27 +882,20 @@ function writeSchema(resource, name, text, log) {
 	let dir = `${GetResourcePath(resource)}/data/schemas`;
 	(0, node_fs_promises.mkdir)(dir, { recursive: !0 }).then(() => (0, node_fs_promises.writeFile)(`${dir}/${name}.schema.json`, text, "utf8")).catch((error) => log.error(`writing ${resource}/${path} failed`, error));
 }
-// ../../../packages/lib/src/server/admin/panel.ts
-const core$25 = resourceExport(CORE.resource);
-var AdminPanel = class {
+// ../../../packages/lib/src/server/admin/panelFiles.ts
+const core$26 = resourceExport(CORE.resource);
+var PanelFiles = class {
 	schema;
 	data = new Map();
 	dataFiles = new Map();
 	handlers = new Map();
-	rules = new Map();
-	actions = new Map();
 	views = new FileViews((file) => this.get(file));
 	worldChanges = new Map();
 	resource = GetCurrentResourceName();
 	log = createLogger(this.resource);
-	editor = 0;
 	constructor(schema) {
 		this.schema = schema;
 		for (let [name, spec] of Object.entries(schema.files)) this.load(name, spec);
-		registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelData", () => this.dataSnapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
-			count: 4,
-			windowMs: 1e4
-		} }), setImmediate(() => core$25.RegisterAdminPanel(this.resource));
 	}
 	get(file) {
 		return this.data.get(file) ?? {};
@@ -909,17 +903,68 @@ var AdminPanel = class {
 	onChange(file, handler) {
 		this.handlers.set(file, [...this.handlers.get(file) ?? [], handler]);
 	}
-	rule(file, rule) {
-		this.rules.set(file, rule);
-	}
-	onAction(id, handler) {
-		this.actions.set(id, handler);
-	}
 	view(file, read) {
 		return this.views.view(file, read);
 	}
 	records(file, readOne) {
 		return this.views.records(file, readOne);
+	}
+	commit(file, key, value) {
+		let data = this.data.get(file);
+		data && (key === void 0 ? isRecord(value) && this.data.set(file, clone(value)) : value === null ? delete data[key] : data[key] = clone(value), this.changed(file, key));
+	}
+	commitAfter(file, key, value) {
+		setImmediate(() => this.commit(file, key, value));
+	}
+	store(patch, spec) {
+		let data = this.data.get(patch.file) ?? {}, keys = applyEdit(data, patch, spec);
+		if (keys.length !== 0) {
+			this.data.set(patch.file, data);
+			for (let key of keys) this.changed(patch.file, key);
+		}
+	}
+	changed(file, key) {
+		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
+		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
+		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
+		if (core$26.AdminPanelChanged({
+			resource: this.resource,
+			file,
+			key,
+			value: clone(value)
+		}), spec?.sync !== "all") return;
+		let changes = this.worldChanges.get(file) ?? {};
+		changes[key ?? ""] = clone(value), this.worldChanges.set(file, changes), emitNet(ADMIN.worldEvent(this.resource), -1, file, key ?? null, value);
+	}
+	load(name, spec) {
+		if (spec.memory) {
+			this.data.set(name, {});
+			return;
+		}
+		let file = new DataFile(this.resource, name, this.log);
+		this.dataFiles.set(name, file), file.schemaRef = `./schemas/${name}.schema.json`, writeSchema(this.resource, name, fileSchema(this.resource, this.schema, name, spec), this.log);
+		let raw = file.read(), data = isRecord(raw) ? raw : {}, filled = !1;
+		if (spec.kind === "settings") for (let [section, value] of Object.entries(spec.defaults ?? {})) section in data || (data[section] = clone(value), filled = !0);
+		this.data.set(name, data), (filled || raw === null || !file.hasSchemaRef()) && file.write(data);
+	}
+};
+// ../../../packages/lib/src/server/admin/panel.ts
+const core$25 = resourceExport(CORE.resource);
+var AdminPanel = class extends PanelFiles {
+	rules = new Map();
+	actions = new Map();
+	editor = 0;
+	constructor(schema) {
+		super(schema), registerExport("AdminPanelSnapshot", () => this.snapshot()), registerExport("AdminPanelData", () => this.dataSnapshot()), registerExport("AdminPanelSummary", () => this.summary()), registerExport("AdminPanelApply", (admin, patch) => this.apply(admin, patch)), onClientCallback(ADMIN.worldChangesCallback(this.resource), () => Object.fromEntries(this.worldChanges), { rate: {
+			count: 4,
+			windowMs: 1e4
+		} }), setImmediate(() => core$25.RegisterAdminPanel(this.resource));
+	}
+	rule(file, rule) {
+		this.rules.set(file, rule);
+	}
+	onAction(id, handler) {
+		this.actions.set(id, handler);
 	}
 	snapshot() {
 		return {
@@ -997,44 +1042,6 @@ var AdminPanel = class {
 			};
 		}
 	}
-	commit(file, key, value) {
-		let data = this.data.get(file);
-		data && (key === void 0 ? isRecord(value) && this.data.set(file, clone(value)) : value === null ? delete data[key] : data[key] = clone(value), this.changed(file, key));
-	}
-	commitAfter(file, key, value) {
-		setImmediate(() => this.commit(file, key, value));
-	}
-	store(patch, spec) {
-		let data = this.data.get(patch.file) ?? {}, keys = applyEdit(data, patch, spec);
-		if (keys.length !== 0) {
-			this.data.set(patch.file, data);
-			for (let key of keys) this.changed(patch.file, key);
-		}
-	}
-	changed(file, key) {
-		let spec = this.schema.files[file], data = this.get(file), value = key === void 0 ? data : data[key] ?? null;
-		this.dataFiles.get(file)?.write(data), this.views.changed(file, key, value);
-		for (let handler of this.handlers.get(file) ?? []) handler(key, value);
-		if (core$25.AdminPanelChanged({
-			resource: this.resource,
-			file,
-			key,
-			value: clone(value)
-		}), spec?.sync !== "all") return;
-		let changes = this.worldChanges.get(file) ?? {};
-		changes[key ?? ""] = clone(value), this.worldChanges.set(file, changes), emitNet(ADMIN.worldEvent(this.resource), -1, file, key ?? null, value);
-	}
-	load(name, spec) {
-		if (spec.memory) {
-			this.data.set(name, {});
-			return;
-		}
-		let file = new DataFile(this.resource, name, this.log);
-		this.dataFiles.set(name, file), file.schemaRef = `./schemas/${name}.schema.json`, writeSchema(this.resource, name, fileSchema(this.resource, this.schema, name, spec), this.log);
-		let raw = file.read(), data = isRecord(raw) ? raw : {}, filled = !1;
-		if (spec.kind === "settings") for (let [section, value] of Object.entries(spec.defaults ?? {})) section in data || (data[section] = clone(value), filled = !0);
-		this.data.set(name, data), (filled || raw === null || !file.hasSchemaRef()) && file.write(data);
-	}
 };
 function labelOf(record, path) {
 	if (!path) return null;
@@ -1053,7 +1060,7 @@ function aiLogChannels(channels) {
 	optionalExport("ai-core")?.LogChannels(channels);
 }
 resourceExport(CORE.resource);
-// ../../../packages/lib/src/server/online.ts
+// ../../../packages/lib/src/server/online/mirror.ts
 const core$23 = resourceExport(CORE.resource);
 function reindex(index, source, before, after) {
 	for (let name of before) {
@@ -1065,7 +1072,7 @@ function reindex(index, source, before, after) {
 		set || index.set(name, set = new Set()), set.add(source);
 	}
 }
-var OnlinePlayers = class {
+var OnlineMirror = class {
 	players = new Map();
 	onDuty = new Map();
 	jobIndex = new Map();
@@ -1117,6 +1124,7 @@ var OnlinePlayers = class {
 		let set = this.onDuty.get(job);
 		set || this.onDuty.set(job, set = new Set()), set.add(source);
 	}
+}, OnlinePlayers = class extends OnlineMirror {
 	sources() {
 		return this.start(), this.players.keys();
 	}
@@ -1236,10 +1244,10 @@ new class {
 		let def = this.gangs.get(name);
 		return def === void 0 && this.gangs.set(name, def = core$19.GetGangDefinition(name) ?? null), def;
 	}
-}();
-// ../../../packages/lib/src/server/command.ts
+}(), createLogger(GetCurrentResourceName());
+// ../../../packages/lib/src/server/command/commandSet.ts
 const resource = GetCurrentResourceName();
-createLogger(resource), new class {
+new class {
 	list = [];
 	sent = new Map();
 	announced = 0;
@@ -1265,7 +1273,7 @@ createLogger(resource), new class {
 		});
 	}
 }(), createLogger(GetCurrentResourceName()), createLogger("aicore-lib");
-// ../../../packages/lib/src/fivem/scheduler.ts
+// ../../../packages/lib/src/fivem/scheduler/group.ts
 var Group = class {
 	interval;
 	jobs = Array(8);
@@ -1351,7 +1359,7 @@ new class {
 		}
 		groups.length = kept, this.nextDue = soonest;
 	};
-}(), IsDuplicityVersion(), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
+}(), IsDuplicityVersion(), IsDuplicityVersion(), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource), resourceExport(CORE.resource);
 // resource/common/shop.ts
 const EVENTS = { buy: "ai-vehicleshop:buy" }, COLORS = [
 	0,
@@ -1408,12 +1416,243 @@ function readSettings(raw) {
 		})
 	};
 }
-// resource/server/schema.ts
-const blip = {
+// resource/server/schema/catalog.ts
+const catalogFile = {
+	kind: "records",
+	sync: "all",
+	labelPath: "model",
+	newRecord: {
+		label: "",
+		model: "",
+		price: 1e4,
+		category: "sedans"
+	},
+	sections: {
+		label: {
+			type: "text",
+			min: 0,
+			max: 48
+		},
+		model: {
+			type: "text",
+			min: 2,
+			max: 32,
+			pattern: "^[a-z0-9_]{2,32}$"
+		},
+		price: {
+			type: "number",
+			min: 0,
+			max: 1e8,
+			integer: !0
+		},
+		category: {
+			type: "text",
+			min: 2,
+			max: 32,
+			pattern: "^[a-z0-9_]{2,32}$"
+		}
+	}
+}, catalogTab = {
+	id: "catalog",
+	file: "catalog",
+	icon: "car",
+	label: "ADMIN_TAB_CATALOG",
+	desc: "ADMIN_TAB_CATALOG_DESC",
+	listSub: "category",
+	createLabel: "ADMIN_NEW_VEHICLE",
+	deleteLabel: "ADMIN_DELETE_VEHICLE",
+	deleteDesc: "ADMIN_DELETE_VEHICLE_DESC",
+	cards: [{
+		icon: "car",
+		title: "ADMIN_C_VEHICLE",
+		desc: "ADMIN_C_VEHICLE_DESC",
+		fields: [
+			{
+				widget: "text",
+				path: "model",
+				label: "ADMIN_F_MODEL",
+				hint: "ADMIN_H_MODEL",
+				placeholder: "ADMIN_P_MODEL"
+			},
+			{
+				widget: "text",
+				path: "label",
+				label: "ADMIN_F_LABEL",
+				hint: "ADMIN_H_LABEL",
+				placeholder: "ADMIN_P_LABEL"
+			},
+			{
+				widget: "number",
+				path: "price",
+				label: "ADMIN_F_PRICE",
+				min: 0,
+				max: 1e8,
+				step: 1e3,
+				unit: "$"
+			},
+			{
+				widget: "text",
+				path: "category",
+				label: "ADMIN_F_CATEGORY",
+				hint: "ADMIN_H_CATEGORY",
+				placeholder: "ADMIN_P_CATEGORY"
+			}
+		]
+	}]
+}, blip = {
 	type: "object",
 	optional: !0,
 	fields: BLIP_STYLE_FIELDS
-}, shopSchema = {
+}, shopsFile = {
+	kind: "records",
+	sync: "all",
+	labelPath: "label",
+	newRecord: {
+		label: "",
+		coords: {
+			x: 0,
+			y: 0,
+			z: 0
+		},
+		radius: 5,
+		preview: {
+			x: 0,
+			y: 0,
+			z: 0,
+			heading: 0
+		},
+		camera: {
+			x: 0,
+			y: 0,
+			z: 0,
+			heading: 0
+		},
+		delivery: {
+			x: 0,
+			y: 0,
+			z: 0,
+			heading: 0
+		},
+		categories: [],
+		jobs: [],
+		gangs: [],
+		blip: !0
+	},
+	sections: {
+		ped: PLACE_PED_SPEC,
+		label: {
+			type: "text",
+			min: 1,
+			max: 48
+		},
+		coords: { type: "vec3" },
+		radius: {
+			type: "number",
+			min: 1,
+			max: 30
+		},
+		preview: { type: "vec4" },
+		camera: { type: "vec4" },
+		delivery: { type: "vec4" },
+		categories: {
+			type: "names",
+			max: 30,
+			itemMax: 32,
+			pattern: "^[a-z0-9_]{2,32}$"
+		},
+		...ACCESS_FIELDS,
+		blip: { type: "bool" }
+	}
+}, shopsTab = {
+	id: "shops",
+	file: "shops",
+	icon: "store",
+	label: "ADMIN_TAB_SHOPS",
+	desc: "ADMIN_TAB_SHOPS_DESC",
+	createLabel: "ADMIN_NEW_SHOP",
+	deleteLabel: "ADMIN_DELETE_SHOP",
+	cards: [
+		{
+			icon: "store",
+			title: "ADMIN_C_SHOP",
+			desc: "ADMIN_C_SHOP_DESC",
+			fields: [
+				{
+					widget: "text",
+					path: "label",
+					suggest: { from: "coords" },
+					label: "ADMIN_F_SHOP_LABEL",
+					placeholder: "ADMIN_P_SHOP_LABEL"
+				},
+				{
+					widget: "point",
+					path: "coords",
+					label: "ADMIN_F_COORDS",
+					hint: "ADMIN_H_COORDS",
+					ground: !0
+				},
+				{
+					widget: "number",
+					path: "radius",
+					label: "ADMIN_F_RADIUS",
+					min: 1,
+					max: 30,
+					unit: "m"
+				},
+				{
+					widget: "tags",
+					path: "categories",
+					label: "ADMIN_F_CATEGORIES",
+					hint: "ADMIN_H_CATEGORIES",
+					placeholder: "ADMIN_P_CATEGORY"
+				},
+				...accessFields(),
+				{
+					widget: "switch",
+					path: "blip",
+					label: "ADMIN_F_BLIP"
+				}
+			]
+		},
+		{
+			icon: "camera",
+			title: "ADMIN_C_SHOWROOM",
+			desc: "ADMIN_C_SHOWROOM_DESC",
+			fields: [
+				{
+					widget: "point",
+					path: "preview",
+					label: "ADMIN_F_PREVIEW",
+					hint: "ADMIN_H_PREVIEW",
+					heading: !0,
+					ground: !0
+				},
+				{
+					widget: "point",
+					path: "camera",
+					label: "ADMIN_F_CAMERA",
+					hint: "ADMIN_H_CAMERA",
+					heading: !0,
+					from: "camera"
+				},
+				{
+					widget: "point",
+					path: "delivery",
+					label: "ADMIN_F_DELIVERY",
+					hint: "ADMIN_H_DELIVERY",
+					heading: !0,
+					ground: !0
+				}
+			]
+		},
+		{
+			icon: "user",
+			title: "ADMIN_C_PED",
+			desc: "ADMIN_C_PED_DESC",
+			fields: placePedFields()
+		}
+	]
+}, panel = new AdminPanel({
 	title: "ADMIN_TITLE",
 	icon: "car",
 	files: {
@@ -1433,243 +1672,12 @@ const blip = {
 			},
 			defaults: { accounts: ["bank", "cash"] }
 		},
-		catalog: {
-			kind: "records",
-			sync: "all",
-			labelPath: "model",
-			newRecord: {
-				label: "",
-				model: "",
-				price: 1e4,
-				category: "sedans"
-			},
-			sections: {
-				label: {
-					type: "text",
-					min: 0,
-					max: 48
-				},
-				model: {
-					type: "text",
-					min: 2,
-					max: 32,
-					pattern: "^[a-z0-9_]{2,32}$"
-				},
-				price: {
-					type: "number",
-					min: 0,
-					max: 1e8,
-					integer: !0
-				},
-				category: {
-					type: "text",
-					min: 2,
-					max: 32,
-					pattern: "^[a-z0-9_]{2,32}$"
-				}
-			}
-		},
-		shops: {
-			kind: "records",
-			sync: "all",
-			labelPath: "label",
-			newRecord: {
-				label: "",
-				coords: {
-					x: 0,
-					y: 0,
-					z: 0
-				},
-				radius: 5,
-				preview: {
-					x: 0,
-					y: 0,
-					z: 0,
-					heading: 0
-				},
-				camera: {
-					x: 0,
-					y: 0,
-					z: 0,
-					heading: 0
-				},
-				delivery: {
-					x: 0,
-					y: 0,
-					z: 0,
-					heading: 0
-				},
-				categories: [],
-				jobs: [],
-				gangs: [],
-				blip: !0
-			},
-			sections: {
-				ped: PLACE_PED_SPEC,
-				label: {
-					type: "text",
-					min: 1,
-					max: 48
-				},
-				coords: { type: "vec3" },
-				radius: {
-					type: "number",
-					min: 1,
-					max: 30
-				},
-				preview: { type: "vec4" },
-				camera: { type: "vec4" },
-				delivery: { type: "vec4" },
-				categories: {
-					type: "names",
-					max: 30,
-					itemMax: 32,
-					pattern: "^[a-z0-9_]{2,32}$"
-				},
-				...ACCESS_FIELDS,
-				blip: { type: "bool" }
-			}
-		}
+		catalog: catalogFile,
+		shops: shopsFile
 	},
 	tabs: [
-		{
-			id: "catalog",
-			file: "catalog",
-			icon: "car",
-			label: "ADMIN_TAB_CATALOG",
-			desc: "ADMIN_TAB_CATALOG_DESC",
-			listSub: "category",
-			createLabel: "ADMIN_NEW_VEHICLE",
-			deleteLabel: "ADMIN_DELETE_VEHICLE",
-			deleteDesc: "ADMIN_DELETE_VEHICLE_DESC",
-			cards: [{
-				icon: "car",
-				title: "ADMIN_C_VEHICLE",
-				desc: "ADMIN_C_VEHICLE_DESC",
-				fields: [
-					{
-						widget: "text",
-						path: "model",
-						label: "ADMIN_F_MODEL",
-						hint: "ADMIN_H_MODEL",
-						placeholder: "ADMIN_P_MODEL"
-					},
-					{
-						widget: "text",
-						path: "label",
-						label: "ADMIN_F_LABEL",
-						hint: "ADMIN_H_LABEL",
-						placeholder: "ADMIN_P_LABEL"
-					},
-					{
-						widget: "number",
-						path: "price",
-						label: "ADMIN_F_PRICE",
-						min: 0,
-						max: 1e8,
-						step: 1e3,
-						unit: "$"
-					},
-					{
-						widget: "text",
-						path: "category",
-						label: "ADMIN_F_CATEGORY",
-						hint: "ADMIN_H_CATEGORY",
-						placeholder: "ADMIN_P_CATEGORY"
-					}
-				]
-			}]
-		},
-		{
-			id: "shops",
-			file: "shops",
-			icon: "store",
-			label: "ADMIN_TAB_SHOPS",
-			desc: "ADMIN_TAB_SHOPS_DESC",
-			createLabel: "ADMIN_NEW_SHOP",
-			deleteLabel: "ADMIN_DELETE_SHOP",
-			cards: [
-				{
-					icon: "store",
-					title: "ADMIN_C_SHOP",
-					desc: "ADMIN_C_SHOP_DESC",
-					fields: [
-						{
-							widget: "text",
-							path: "label",
-							suggest: { from: "coords" },
-							label: "ADMIN_F_SHOP_LABEL",
-							placeholder: "ADMIN_P_SHOP_LABEL"
-						},
-						{
-							widget: "point",
-							path: "coords",
-							label: "ADMIN_F_COORDS",
-							hint: "ADMIN_H_COORDS",
-							ground: !0
-						},
-						{
-							widget: "number",
-							path: "radius",
-							label: "ADMIN_F_RADIUS",
-							min: 1,
-							max: 30,
-							unit: "m"
-						},
-						{
-							widget: "tags",
-							path: "categories",
-							label: "ADMIN_F_CATEGORIES",
-							hint: "ADMIN_H_CATEGORIES",
-							placeholder: "ADMIN_P_CATEGORY"
-						},
-						...accessFields(),
-						{
-							widget: "switch",
-							path: "blip",
-							label: "ADMIN_F_BLIP"
-						}
-					]
-				},
-				{
-					icon: "camera",
-					title: "ADMIN_C_SHOWROOM",
-					desc: "ADMIN_C_SHOWROOM_DESC",
-					fields: [
-						{
-							widget: "point",
-							path: "preview",
-							label: "ADMIN_F_PREVIEW",
-							hint: "ADMIN_H_PREVIEW",
-							heading: !0,
-							ground: !0
-						},
-						{
-							widget: "point",
-							path: "camera",
-							label: "ADMIN_F_CAMERA",
-							hint: "ADMIN_H_CAMERA",
-							heading: !0,
-							from: "camera"
-						},
-						{
-							widget: "point",
-							path: "delivery",
-							label: "ADMIN_F_DELIVERY",
-							hint: "ADMIN_H_DELIVERY",
-							heading: !0,
-							ground: !0
-						}
-					]
-				},
-				{
-					icon: "user",
-					title: "ADMIN_C_PED",
-					desc: "ADMIN_C_PED_DESC",
-					fields: placePedFields()
-				}
-			]
-		},
+		catalogTab,
+		shopsTab,
 		{
 			id: "settings",
 			file: "settings",
@@ -1705,13 +1713,16 @@ const blip = {
 			}]
 		}
 	]
-}, core = resourceExport("ai-core"), vehiclesApi = resourceExport("ai-vehicles"), panel = new AdminPanel(shopSchema), content = {
+}), content = {
 	settings: panel.view("settings", readSettings),
 	shops: panel.records("shops", readShop)
 }, byModel = new Map();
 new RecordObjects(panel, "catalog", readEntry, (_id, entry) => {
 	if (!byModel.has(entry.model)) return byModel.set(entry.model, entry), () => byModel.delete(entry.model);
-}), aiLogChannels({ purchases: {} });
+}), registerExport("GetCatalogPrice", (model) => typeof model == "string" ? byModel.get(model.toLowerCase())?.price ?? null : null);
+// resource/server/purchase.ts
+const core = resourceExport("ai-core"), vehiclesApi = resourceExport("ai-vehicles");
+aiLogChannels({ purchases: {} });
 function charge(source, price, reason) {
 	for (let account of content.settings.value.accounts) if (core.RemoveMoney(source, account, price, reason)) return account;
 	return null;
@@ -1755,4 +1766,4 @@ onClientCallback(EVENTS.buy, {
 		netId,
 		plate: created.plate
 	};
-}), registerExport("GetCatalogPrice", (model) => typeof model == "string" ? byModel.get(model.toLowerCase())?.price ?? null : null);
+});
