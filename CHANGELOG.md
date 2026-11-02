@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/aifivem/ai-vehicleshop/compare/v0.1.4...v0.1.5) (2026-11-02)
+
+
+### Documentation
+
+* install from the release zip ([44e917c](https://github.com/aifivem/ai-vehicleshop/commit/44e917c4c84bfbe2d54cf775163459a99c5454e2))
+
+
+### Miscellaneous Chores
+
+* build files are no longer in git, the release zip carries them ([b646a3e](https://github.com/aifivem/ai-vehicleshop/commit/b646a3e4e08a076e0c07317c56a1e3bb47ff69d0))
+
 ## [0.1.4](https://github.com/aifivem/ai-vehicleshop/compare/v0.1.3...v0.1.4) (2026-11-02)
 
 
