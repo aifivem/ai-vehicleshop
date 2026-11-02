@@ -1,4 +1,4 @@
-import { AdminWorld } from "@aicore-fivem/lib/client";
+import { AdminWorld } from "@aifivem/lib/client";
 import { readEntry, readSettings } from "common/shop";
 
 export const world = new AdminWorld(["settings", "catalog", "shops"]);

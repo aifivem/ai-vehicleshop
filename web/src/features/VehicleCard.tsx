@@ -3,7 +3,7 @@ import type { ShopView } from "../../../resource/common/shop";
 import { useLang } from "../lib/lang";
 import { cn } from "../lib/utils";
 import { categoryIcon } from "./categoryIcon";
-import { groupDigits } from "@aicore-fivem/lib/shared";
+import { groupDigits } from "@aifivem/lib/shared";
 
 /** One vehicle of the bottom strip (tgiann-vehicleshop card): glyph block, name, class chip, green price. */
 export function VehicleCard({

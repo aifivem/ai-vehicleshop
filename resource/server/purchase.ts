@@ -5,8 +5,8 @@ import {
   onClientCallback,
   online,
   resourceExport,
-} from "@aicore-fivem/lib/server";
-import { fail, readText } from "@aicore-fivem/lib/shared";
+} from "@aifivem/lib/server";
+import { fail, readText } from "@aifivem/lib/shared";
 import { COLORS, EVENTS } from "common/shop";
 import { byModel } from "./catalog";
 import { content } from "./content";

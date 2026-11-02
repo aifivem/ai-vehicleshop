@@ -1,4 +1,4 @@
-import type { FileSpec, TabSpec } from "@aicore-fivem/shared";
+import type { FileSpec, TabSpec } from "@aifivem/shared";
 
 export const catalogFile: FileSpec = {
   kind: "records",

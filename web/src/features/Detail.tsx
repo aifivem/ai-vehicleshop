@@ -4,7 +4,7 @@ import type { ShopView } from "../../../resource/common/shop";
 import { Button } from "../components/ui/button";
 import { useLang } from "../lib/lang";
 import { cn } from "../lib/utils";
-import { groupDigits } from "@aicore-fivem/lib/shared";
+import { groupDigits } from "@aifivem/lib/shared";
 
 /** Swatch colours for the GTA colour indexes in `COLORS` (same order). */
 const SWATCH = [

@@ -4,8 +4,8 @@ import {
   onCache,
   onMembershipChange,
   Points,
-} from "@aicore-fivem/lib/client";
-import { isPublic, RecordObjects } from "@aicore-fivem/lib/shared";
+} from "@aifivem/lib/client";
+import { isPublic, RecordObjects } from "@aifivem/lib/shared";
 import { Locale } from "common";
 import { readShop } from "common/shop";
 import { content, world } from "./content";

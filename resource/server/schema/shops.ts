@@ -3,8 +3,8 @@ import {
   accessFields,
   PLACE_PED_SPEC,
   placePedFields,
-} from "@aicore-fivem/lib/shared";
-import type { FileSpec, TabSpec } from "@aicore-fivem/shared";
+} from "@aifivem/lib/shared";
+import type { FileSpec, TabSpec } from "@aifivem/shared";
 import { blip } from "./blip";
 
 export const shopsFile: FileSpec = {

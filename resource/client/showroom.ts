@@ -7,11 +7,11 @@ import {
   PreviewVehicle,
   ScriptCamera,
   vehicleLabel,
-} from "@aicore-fivem/lib/client";
-import { isRecord } from "@aicore-fivem/lib/shared";
+} from "@aifivem/lib/client";
+import { isRecord } from "@aifivem/lib/shared";
 import { Locale } from "common";
 import { COLORS, EVENTS, type NuiMessage, type Shop } from "common/shop";
-import { NUI_LAYER } from "@aicore-fivem/shared";
+import { NUI_LAYER } from "@aifivem/shared";
 import { content } from "./content";
 
 // Stacking among NUI pages (`NUI_LAYER`): set at start, not left to load order.
